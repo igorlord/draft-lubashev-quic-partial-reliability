@@ -1,0 +1,280 @@
+
+
+
+
+QUIC                                                         I. Lubashev
+Internet-Draft                                       Akamai Technologies
+Intended status: Informational                          December 5, 2017
+Expires: June 8, 2018
+
+
+                  Partially Reliable Streams for QUIC
+             draft-lubashev-quic-partial-reliability-latest
+
+Abstract
+
+   This memo introduces QUIC MIN_STREAM_DATA frame to enable partial
+   reliability for QUIC streams.  The MIN_STREAM_DATA frame allows the
+   sender of data to give up on retransmitting older parts of a stream
+   and to notify the receiver about this decision.  All content of this
+   draft are intended to be merged into QUIC transport, recovery, and
+   applicability drafts.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on June 8, 2018.
+
+Copyright Notice
+
+   Copyright (c) 2017 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (https://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document.  Please review these documents
+   carefully, as they describe your rights and restrictions with respect
+   to this document.  Code Components extracted from this document must
+   include Simplified BSD License text as described in Section 4.e of
+
+
+
+
+Lubashev                  Expires June 8, 2018                  [Page 1]
+
+Internet-Draft                   quic-pr                   December 2017
+
+
+   the Trust Legal Provisions and are provided without warranty as
+   described in the Simplified BSD License.
+
+Table of Contents
+
+   1.  Notational Conventions  . . . . . . . . . . . . . . . . . . .   2
+   2.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+     2.1.  Multi-Stream Approach . . . . . . . . . . . . . . . . . .   2
+     2.2.  Single-Stream Approach  . . . . . . . . . . . . . . . . .   3
+   3.  MIN_STREAM_DATA Frame . . . . . . . . . . . . . . . . . . . .   3
+   4.  Effect of MIN_STREAM_DATA on Flow Control . . . . . . . . . .   3
+   5.  Sender Model  . . . . . . . . . . . . . . . . . . . . . . . .   4
+   6.  Receiver Model  . . . . . . . . . . . . . . . . . . . . . . .   4
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   4
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   4
+   9.  Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   4
+   10. Normative References  . . . . . . . . . . . . . . . . . . . .   4
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .   5
+
+1.  Notational Conventions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in [RFC2119].
+
+2.  Introduction
+
+   Some applications, especially applications with real-time
+   requirments, need a partially reliable transport.  These applications
+   typically communicate data in application-specific messages that are
+   serialized over QUIC streams.  Applications desire partially reliable
+   transport, when their messages expire and lose their usefulness upon
+   an occurence of such events as timer expiration, being superseeded by
+   specific other messages, or other events external to the transport.
+
+   All content of this draft are intended to be merged into
+   [I-D.ietf-quic-transport], [I-D.ietf-quic-recovery] and,
+   [I-D.ietf-quic-applicability].
+
+   The key to partial reliablity is notifying the peer and transport,
+   when data, previously enqueued for transmission, no longer needs to
+   be transmitted.
+
+2.1.  Multi-Stream Approach
+
+   It is possible to provide partial reliablity without any changes to
+   QUIC transport by using QUIC streams, encoding one message per QUIC
+   stream.  When the message expires, the sender can resent the stream,
+
+
+
+Lubashev                  Expires June 8, 2018                  [Page 2]
+
+Internet-Draft                   quic-pr                   December 2017
+
+
+   causing RST_STREAM frame to be transmitted, unless all data in the
+   stream has already been fully ACKed.  The problem with this approach
+   is that messages transmitted by the application are typically not
+   independent but a part of a message stream.  Hence, a message-per-
+   stream approach requires each message to contain an extra header
+   portion to associate the message with the logical application stream.
+   In case of short messages, however, this approach introduces a
+   significant overhead.
+
+2.2.  Single-Stream Approach
+
+   An alternative is the proposed single-stream mechanism that keeps
+   messages arriving in order on a single stream.
+
+3.  MIN_STREAM_DATA Frame
+
+   The MIN_STREAM_DATA frame (type=0x??) is used in flow control to
+   inform the peer of the minimum (re-) transmittable data offset on a
+   stream.  When MIN_STREAM_DATA is received, the endpoint should stop
+   waiting for retransmittions of any data below Minimum Stream Data on
+   Stream ID.
+
+   The frame is as follows:
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Stream ID (i)                        ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Maximum Stream Data (i)                  ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   The fields in the MIN_STREAM_DATA frame are as follows:
+
+   Stream ID:  The stream ID of the stream that is affected encoded as a
+      variable-length integer.
+
+   Minimum Stream Data:  A variable-length integer indicating the the
+      minimum data offset that will be transmited (or retransmited) on
+      the identified stream, in units of octets.
+
+   Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.
+
+4.  Effect of MIN_STREAM_DATA on Flow Control
+
+   Minimum Stream Data should be used in flow control accounting.
+   Hence, a receipt of a MIN_STREAM_DATA frame MUST advance the stream's
+
+
+
+
+Lubashev                  Expires June 8, 2018                  [Page 3]
+
+Internet-Draft                   quic-pr                   December 2017
+
+
+   flow control credits, if Minimum Stream Data is greater than the
+   maximum data offset received on this stream.
+
+5.  Sender Model
+
+   It is recommended that a QUIC library API provide a way for a sender
+   to update minimum retransmittable offset for a stream.  A typical
+   sender would call an API function providing this functionality
+   whenever any data previously enqueued for transmission expires, per
+   application semantics.  The sender would keep track of the message
+   boundaries of such data.  If all data since the existing minimum
+   retransmittable stream offset and the new offset has been ACKed, no
+   action is performed by the sender QUIC library.  Otherwise, if there
+   is unACKed data, a MIN_STREAM_DATA frame is transmitted.
+
+6.  Receiver Model
+
+7.  IANA Considerations
+
+   This document has no actions for IANA.
+
+8.  Security Considerations
+
+   This document has no new security considerations.
+
+9.  Acknowledgments
+
+   The Acknowledgments will come here.
+
+10.  Normative References
+
+   [I-D.ietf-quic-applicability]
+              Kuehlewind, M. and B. Trammell, "Applicability of the QUIC
+              Transport Protocol", draft-ietf-quic-applicability-01
+              (work in progress), October 2017.
+
+   [I-D.ietf-quic-recovery]
+              Iyengar, J. and I. Swett, "QUIC Loss Detection and
+              Congestion Control", draft-ietf-quic-recovery-07 (work in
+              progress), November 2017.
+
+   [I-D.ietf-quic-transport]
+              Iyengar, J. and M. Thomson, "QUIC: A UDP-Based Multiplexed
+              and Secure Transport", draft-ietf-quic-transport-07 (work
+              in progress), October 2017.
+
+
+
+
+
+
+Lubashev                  Expires June 8, 2018                  [Page 4]
+
+Internet-Draft                   quic-pr                   December 2017
+
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+Author's Address
+
+   Igor Lubashev
+   Akamai Technologies
+
+   EMail: igorlord@alum.mit.edu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lubashev                  Expires June 8, 2018                  [Page 5]
