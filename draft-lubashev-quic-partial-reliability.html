@@ -280,14 +280,15 @@ address {
 <link href="#rfc.section.2" rel="Chapter" title="2 Introduction">
 <link href="#rfc.section.2.1" rel="Chapter" title="2.1 Multi-Stream Approach">
 <link href="#rfc.section.2.2" rel="Chapter" title="2.2 Single-Stream Approach">
-<link href="#rfc.section.3" rel="Chapter" title="3 MIN_STREAM_DATA Frame">
-<link href="#rfc.section.4" rel="Chapter" title="4 Effect of MIN_STREAM_DATA on Flow Control">
-<link href="#rfc.section.5" rel="Chapter" title="5 Sender Model">
-<link href="#rfc.section.6" rel="Chapter" title="6 Receiver Model">
-<link href="#rfc.section.7" rel="Chapter" title="7 IANA Considerations">
-<link href="#rfc.section.8" rel="Chapter" title="8 Security Considerations">
-<link href="#rfc.section.9" rel="Chapter" title="9 Acknowledgments">
-<link href="#rfc.references" rel="Chapter" title="10 Normative References">
+<link href="#rfc.section.3" rel="Chapter" title="3 Min Stream Offset">
+<link href="#rfc.section.4" rel="Chapter" title="4 MIN_STREAM_DATA Frame">
+<link href="#rfc.section.5" rel="Chapter" title="5 Effect of MIN_STREAM_DATA on Flow Control">
+<link href="#rfc.section.6" rel="Chapter" title="6 Sender Interface and Behavior">
+<link href="#rfc.section.7" rel="Chapter" title="7 Receiver Interface and Behavior">
+<link href="#rfc.section.8" rel="Chapter" title="8 IANA Considerations">
+<link href="#rfc.section.9" rel="Chapter" title="9 Security Considerations">
+<link href="#rfc.section.10" rel="Chapter" title="10 Acknowledgments">
+<link href="#rfc.references" rel="Chapter" title="11 Normative References">
 <link href="#rfc.authors" rel="Chapter">
 
 
@@ -296,9 +297,9 @@ address {
 
   <meta name="dct.creator" content="Lubashev, I." />
   <meta name="dct.identifier" content="urn:ietf:id:draft-lubashev-quic-partial-reliability-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2017-12-5" />
-  <meta name="dct.abstract" content="This memo introduces QUIC MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows the sender of data to give up on retransmitting older parts of a stream and to notify the receiver about this decision. All content of this draft are intended to be merged into QUIC transport, recovery, and applicability drafts." />
-  <meta name="description" content="This memo introduces QUIC MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows the sender of data to give up on retransmitting older parts of a stream and to notify the receiver about this decision. All content of this draft are intended to be merged into QUIC transport, recovery, and applicability drafts." />
+  <meta name="dct.issued" scheme="ISO8601" content="2017-12-12" />
+  <meta name="dct.abstract" content="This memo introduces a MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision. The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts." />
+  <meta name="description" content="This memo introduces a MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision. The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts." />
 
 </head>
 
@@ -317,10 +318,10 @@ address {
 </tr>
 <tr>
 <td class="left">Intended status: Informational</td>
-<td class="right">December 5, 2017</td>
+<td class="right">December 12, 2017</td>
 </tr>
 <tr>
-<td class="left">Expires: June 8, 2018</td>
+<td class="left">Expires: June 15, 2018</td>
 <td class="right"></td>
 </tr>
 
@@ -332,12 +333,12 @@ address {
   <span class="filename">draft-lubashev-quic-partial-reliability-latest</span></p>
   
   <h1 id="rfc.abstract"><a href="#rfc.abstract">Abstract</a></h1>
-<p>This memo introduces QUIC MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows the sender of data to give up on retransmitting older parts of a stream and to notify the receiver about this decision. All content of this draft are intended to be merged into QUIC transport, recovery, and applicability drafts.</p>
+<p>This memo introduces a MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision. The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts.</p>
 <h1 id="rfc.status"><a href="#rfc.status">Status of This Memo</a></h1>
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at https://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on June 8, 2018.</p>
+<p>This Internet-Draft will expire on June 15, 2018.</p>
 <h1 id="rfc.copyrightnotice"><a href="#rfc.copyrightnotice">Copyright Notice</a></h1>
 <p>Copyright (c) 2017 IETF Trust and the persons identified as the document authors.  All rights reserved.</p>
 <p>This document is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents (https://trustee.ietf.org/license-info) in effect on the date of publication of this document.  Please review these documents carefully, as they describe your rights and restrictions with respect to this document.  Code Components extracted from this document must include Simplified BSD License text as described in Section 4.e of the Trust Legal Provisions and are provided without warranty as described in the Simplified BSD License.</p>
@@ -355,21 +356,23 @@ address {
 </li>
 <li>2.2.   <a href="#rfc.section.2.2">Single-Stream Approach</a>
 </li>
-</ul><li>3.   <a href="#rfc.section.3">MIN_STREAM_DATA Frame</a>
+</ul><li>3.   <a href="#rfc.section.3">Min Stream Offset</a>
 </li>
-<li>4.   <a href="#rfc.section.4">Effect of MIN_STREAM_DATA on Flow Control</a>
+<li>4.   <a href="#rfc.section.4">MIN_STREAM_DATA Frame</a>
 </li>
-<li>5.   <a href="#rfc.section.5">Sender Model</a>
+<li>5.   <a href="#rfc.section.5">Effect of MIN_STREAM_DATA on Flow Control</a>
 </li>
-<li>6.   <a href="#rfc.section.6">Receiver Model</a>
+<li>6.   <a href="#rfc.section.6">Sender Interface and Behavior</a>
 </li>
-<li>7.   <a href="#rfc.section.7">IANA Considerations</a>
+<li>7.   <a href="#rfc.section.7">Receiver Interface and Behavior</a>
 </li>
-<li>8.   <a href="#rfc.section.8">Security Considerations</a>
+<li>8.   <a href="#rfc.section.8">IANA Considerations</a>
 </li>
-<li>9.   <a href="#rfc.section.9">Acknowledgments</a>
+<li>9.   <a href="#rfc.section.9">Security Considerations</a>
 </li>
-<li>10.   <a href="#rfc.references">Normative References</a>
+<li>10.   <a href="#rfc.section.10">Acknowledgments</a>
+</li>
+<li>11.   <a href="#rfc.references">Normative References</a>
 </li>
 <li><a href="#rfc.authors">Author's Address</a>
 </li>
@@ -384,66 +387,84 @@ address {
 <h1 id="rfc.section.2">
 <a href="#rfc.section.2">2.</a> <a href="#introduction" id="introduction">Introduction</a>
 </h1>
-<p id="rfc.section.2.p.1">Some applications, especially applications with real-time requirments, need a partially reliable transport.  These applications typically communicate data in application-specific messages that are serialized over QUIC streams.  Applications desire partially reliable transport, when their messages expire and lose their usefulness upon an occurence of such events as timer expiration, being superseeded by specific other messages, or other events external to the transport.</p>
-<p id="rfc.section.2.p.2">All content of this draft are intended to be merged into <a href="#I-D.ietf-quic-transport" class="xref">[I-D.ietf-quic-transport]</a>, <a href="#I-D.ietf-quic-recovery" class="xref">[I-D.ietf-quic-recovery]</a> and, <a href="#I-D.ietf-quic-applicability" class="xref">[I-D.ietf-quic-applicability]</a>.</p>
-<p id="rfc.section.2.p.3">The key to partial reliablity is notifying the peer and transport, when data, previously enqueued for transmission, no longer needs to be transmitted.</p>
+<p id="rfc.section.2.p.1">Some applications, especially applications with real-time requirments, need a partially reliable transport.  These applications typically communicate data in application-specific messages that are serialized over QUIC streams.  Applications desire partially reliable transport, when their messages expire and lose their usefulness upon timer expirations, becoming superseeded by newer messages, or other events external to the transport.</p>
+<p id="rfc.section.2.p.2">The content of this draft is intended for <a href="#I-D.ietf-quic-transport" class="xref">[I-D.ietf-quic-transport]</a>, <a href="#I-D.ietf-quic-recovery" class="xref">[I-D.ietf-quic-recovery]</a> and, <a href="#I-D.ietf-quic-applicability" class="xref">[I-D.ietf-quic-applicability]</a>.</p>
+<p id="rfc.section.2.p.3">The key to partial reliablity is notifying the transport and the peer when data, previously enqueued for transmission, no longer needs to be transmitted.</p>
 <h1 id="rfc.section.2.1">
 <a href="#rfc.section.2.1">2.1.</a> <a href="#multi-stream-approach" id="multi-stream-approach">Multi-Stream Approach</a>
 </h1>
-<p id="rfc.section.2.1.p.1">It is possible to provide partial reliablity without any changes to QUIC transport by using QUIC streams, encoding one message per QUIC stream.  When the message expires, the sender can resent the stream, causing RST_STREAM frame to be transmitted, unless all data in the stream has already been fully ACKed.  The problem with this approach is that messages transmitted by the application are typically not independent but a part of a message stream.  Hence, a message-per-stream approach requires each message to contain an extra header portion to associate the message with the logical application stream.  In case of short messages, however, this approach introduces a significant overhead.</p>
+<p id="rfc.section.2.1.p.1">It is possible to provide partial reliablity without any changes to QUIC transport by using QUIC streams, encoding one message per QUIC stream.  When the message expires, the sender can resent the stream, causing RST_STREAM frame to be transmitted, unless all data in the stream has already been fully acknowledged.  The problem with this approach is that messages transmitted by the application are typically not independent but a part of a message stream, and applications may need to support multiple concurrent message streams.  Hence, a message-per-stream approach requires each message to contain an extra header portion to associate the message with a logical application stream.  In case of short messages, this approach introduces a significant overhead.</p>
 <h1 id="rfc.section.2.2">
 <a href="#rfc.section.2.2">2.2.</a> <a href="#single-stream-approach" id="single-stream-approach">Single-Stream Approach</a>
 </h1>
 <p id="rfc.section.2.2.p.1">An alternative is the proposed single-stream mechanism that keeps messages arriving in order on a single stream.</p>
 <h1 id="rfc.section.3">
-<a href="#rfc.section.3">3.</a> <a href="#min_stream_data" id="min_stream_data">MIN_STREAM_DATA Frame</a>
+<a href="#rfc.section.3">3.</a> <a href="#min-stream-offset" id="min-stream-offset">Min Stream Offset</a>
 </h1>
-<p id="rfc.section.3.p.1">The MIN_STREAM_DATA frame (type=0x??) is used in flow control to inform the peer of the minimum (re-) transmittable data offset on a stream.  When MIN_STREAM_DATA is received, the endpoint should stop waiting for retransmittions of any data below Minimum Stream Data on Stream ID.</p>
-<p id="rfc.section.3.p.2">The frame is as follows:</p>
+<p id="rfc.section.3.p.1">This proposal introduces a new QUIC stream variable &#8220;Min Stream Offset&#8221; that indicates the smallest retransmittable data offset.  The receiver SHOULD NOT wait for any data at offsets smaller than Min Stream Offset to be retransmitted by the sender.  Initially, Min Stream Offset is 0 for all streams.</p>
+<h1 id="rfc.section.4">
+<a href="#rfc.section.4">4.</a> <a href="#min_stream_data" id="min_stream_data">MIN_STREAM_DATA Frame</a>
+</h1>
+<p id="rfc.section.4.p.1">The MIN_STREAM_DATA frame (types 0x?? and 0x??) is used in flow control to inform the peer of the minimum (re-)transmittable data offset on a stream.  If the least significant bit is set, Unsent Bytes field is present in the frame.</p>
+<p id="rfc.section.4.p.2">The frame is as follows:</p>
 <pre>
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                        Stream ID (i)                        ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                    Maximum Stream Data (i)                  ...
+|                        Sent Data (i)                        ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                       Unsent Bytes (i)                      ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 </pre>
-<p id="rfc.section.3.p.3">The fields in the MIN_STREAM_DATA frame are as follows:</p>
+<p id="rfc.section.4.p.3">The fields in the MIN_STREAM_DATA frame are as follows:</p>
 <p></p>
 
 <dl>
 <dt>Stream ID:</dt>
 <dd style="margin-left: 8">The stream ID of the stream that is affected encoded as a variable-length integer.</dd>
-<dt>Minimum Stream Data:</dt>
-<dd style="margin-left: 8">A variable-length integer indicating the the minimum data offset that will be transmited (or retransmited) on the identified stream, in units of octets.</dd>
+<dt>Sent Data:</dt>
+<dd style="margin-left: 8">A variable-length integer indicating the number of data octets written to the stream (since the beginning of the stream) that have expired and will not be retransmitted.</dd>
+<dt>Unsent Bytes:</dt>
+<dd style="margin-left: 8">A variable-length integer indicating the number of data octets past Sent Data that have expired but have never been sent and will not be transmitted.  If Unsent Bytes field is absent, it is presumed to be 0.</dd>
 </dl>
-<p id="rfc.section.3.p.5">Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.</p>
-<h1 id="rfc.section.4">
-<a href="#rfc.section.4">4.</a> <a href="#effect-of-minstreamdata-on-flow-control" id="effect-of-minstreamdata-on-flow-control">Effect of MIN_STREAM_DATA on Flow Control</a>
-</h1>
-<p id="rfc.section.4.p.1">Minimum Stream Data should be used in flow control accounting.  Hence, a receipt of a MIN_STREAM_DATA frame MUST advance the stream&#8217;s flow control credits, if Minimum Stream Data is greater than the maximum data offset received on this stream.</p>
+<p id="rfc.section.4.p.5">Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.  If Unsent Bytes field is present in the frame, it MUST NOT be 0 (reserved for the future use).</p>
+<p id="rfc.section.4.p.6">Min Stream Offset (<a href="#min-stream-offset" class="xref">Section 3</a>) for Stream ID is determined by the formula:</p>
+<pre>
+  Min Stream Offset = MAX(Min Stream Offset, Sent Data + Unsent Bytes)
+</pre>
 <h1 id="rfc.section.5">
-<a href="#rfc.section.5">5.</a> <a href="#sender-model" id="sender-model">Sender Model</a>
+<a href="#rfc.section.5">5.</a> <a href="#flow-control" id="flow-control">Effect of MIN_STREAM_DATA on Flow Control</a>
 </h1>
-<p id="rfc.section.5.p.1">It is recommended that a QUIC library API provide a way for a sender to update minimum retransmittable offset for a stream.  A typical sender would call an API function providing this functionality whenever any data previously enqueued for transmission expires, per application semantics.  The sender would keep track of the message boundaries of such data.  If all data since the existing minimum retransmittable stream offset and the new offset has been ACKed, no action is performed by the sender QUIC library.  Otherwise, if there is unACKed data, a MIN_STREAM_DATA frame is transmitted.</p>
+<p id="rfc.section.5.p.1">The value of Sent Data field MUST be used in flow control accounting.  A receipt of a MIN_STREAM_DATA frame MUST advance the stream and connection flow control credits, if the maximum data offset received on Stream ID is less than Sent Data.</p>
+<p id="rfc.section.5.p.2">Also, a receipt of MIN_STREAM_DATA with Min Stream Offset beyond the stream&#8217;s MAX_STREAM_DATA SHOULD be treated as a receipt of a STREAM_BLOCKED frame.</p>
 <h1 id="rfc.section.6">
-<a href="#rfc.section.6">6.</a> <a href="#receiver-model" id="receiver-model">Receiver Model</a>
+<a href="#rfc.section.6">6.</a> <a href="#sender" id="sender">Sender Interface and Behavior</a>
 </h1>
+<p id="rfc.section.6.p.1">It is recommended that a QUIC library API provides a way for a sender to update the minimum retransmittable offset for a stream.  A typical sender would call an API function providing this functionality whenever any data previously enqueued for transmission expires, per application semantics.  The sender would keep track of the message boundaries of such data.  If all data between the current Min Stream Offset and the new Min Stream Offset has been acknowledged, no action is performed by the sender&#8217;s QUIC implementation.  Otherwise, if there is unacknowledged data, a MIN_STREAM_DATA frame is transmitted.</p>
+<p id="rfc.section.6.p.2">An application may decide to conditionally expire messages based on the delivery status of prior messages.  For example, an application may wish to ensure that its large messages are delivered at least at a given minimum rate before expiring a partially-delivered message just because their is a newer message to deliver.  That is, if the rate of data the application wishes to write exceeds the network&#8217;s throughput, the application may want to ensure that at least some messages are delivered in their entirety.  To support this use case, it is recommended that a QUIC library API provides a way for the sender to minitor the smallest unacknowledged stream offset greater than Min Stream Offset (<a href="#min-stream-offset" class="xref">Section 3</a>).</p>
 <h1 id="rfc.section.7">
-<a href="#rfc.section.7">7.</a> <a href="#iana" id="iana">IANA Considerations</a>
+<a href="#rfc.section.7">7.</a> <a href="#receiver" id="receiver">Receiver Interface and Behavior</a>
 </h1>
-<p id="rfc.section.7.p.1">This document has no actions for IANA.</p>
+<p id="rfc.section.7.p.1">A receiver of MIN_STREAM_DATA MUST use Sent Data for flow control accounting (see <a href="#flow-control" class="xref">Section 5</a>).  The receiver SHOULD assume that none of the data up to Min Stream Offset (<a href="#min-stream-offset" class="xref">Section 3</a>) will be retransmitted.</p>
+<p id="rfc.section.7.p.2">When computing window updates for MAX_STREAM_DATA and MAX_DATA, the receiver SHOULD use the larger of &#8220;Min Stream Offset&#8221; and &#8220;the largest data offset&#8221; received for the stream.</p>
+<p id="rfc.section.7.p.3">It is recommended that a QUIC library API provides a way for a receiver to obtain the length of a gap corresponding to the expired data instead of (or in addition to) data octets that follow the gap.</p>
+<p id="rfc.section.7.p.4">A receiver MAY discard any stream data received for an offset smaller than Min Stream Offset.</p>
 <h1 id="rfc.section.8">
-<a href="#rfc.section.8">8.</a> <a href="#security" id="security">Security Considerations</a>
+<a href="#rfc.section.8">8.</a> <a href="#iana" id="iana">IANA Considerations</a>
 </h1>
-<p id="rfc.section.8.p.1">This document has no new security considerations.</p>
+<p id="rfc.section.8.p.1">This document has no actions for IANA.</p>
 <h1 id="rfc.section.9">
-<a href="#rfc.section.9">9.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
+<a href="#rfc.section.9">9.</a> <a href="#security" id="security">Security Considerations</a>
 </h1>
-<p id="rfc.section.9.p.1">The Acknowledgments will come here.</p>
+<p id="rfc.section.9.p.1">This document has no new security considerations.</p>
+<h1 id="rfc.section.10">
+<a href="#rfc.section.10">10.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
+</h1>
+<p id="rfc.section.10.p.1">Many thanks to Mike Bishop for his feedback on flow control issues and proofreading this draft.  Kudos to the QUIC working group for dilligently plowing through hard problems and making thousands of big and small decisions to make the Internet better for everyone.</p>
 <h1 id="rfc.references">
-<a href="#rfc.references">10.</a> Normative References</h1>
+<a href="#rfc.references">11.</a> Normative References</h1>
 <table><tbody>
 <tr>
 <td class="reference"><b id="I-D.ietf-quic-applicability">[I-D.ietf-quic-applicability]</b></td>
@@ -453,12 +474,12 @@ address {
 <tr>
 <td class="reference"><b id="I-D.ietf-quic-recovery">[I-D.ietf-quic-recovery]</b></td>
 <td class="top">
-<a>Iyengar, J.</a> and <a>I. Swett</a>, "<a href="https://tools.ietf.org/html/draft-ietf-quic-recovery-07">QUIC Loss Detection and Congestion Control</a>", Internet-Draft draft-ietf-quic-recovery-07, November 2017.</td>
+<a>Iyengar, J.</a> and <a>I. Swett</a>, "<a href="https://tools.ietf.org/html/draft-ietf-quic-recovery-08">QUIC Loss Detection and Congestion Control</a>", Internet-Draft draft-ietf-quic-recovery-08, December 2017.</td>
 </tr>
 <tr>
 <td class="reference"><b id="I-D.ietf-quic-transport">[I-D.ietf-quic-transport]</b></td>
 <td class="top">
-<a>Iyengar, J.</a> and <a>M. Thomson</a>, "<a href="https://tools.ietf.org/html/draft-ietf-quic-transport-07">QUIC: A UDP-Based Multiplexed and Secure Transport</a>", Internet-Draft draft-ietf-quic-transport-07, October 2017.</td>
+<a>Iyengar, J.</a> and <a>M. Thomson</a>, "<a href="https://tools.ietf.org/html/draft-ietf-quic-transport-08">QUIC: A UDP-Based Multiplexed and Secure Transport</a>", Internet-Draft draft-ietf-quic-transport-08, December 2017.</td>
 </tr>
 <tr>
 <td class="reference"><b id="RFC2119">[RFC2119]</b></td>
