@@ -115,14 +115,14 @@ Internet-Draft                   quic-pr                   December 2017
 
 
    stream has already been fully acknowledged.  The problem with this
-   approach is that messages transmitted by the application are
-   typically not independent but a part of a message stream, and
-   applications may need to support multiple concurrent message streams.
-   Hence, a message-per-stream approach requires each message to contain
-   an extra header portion to associate the message with a logical
-   application stream.  In case of short messages, this approach
-   introduces a significant overhead and places the burden on the
-   application to reorder data arriving on multiple QUIC streams.
+   approach is that messages transmitted by the application typically
+   belong to a message stream and applications may need to support
+   multiple concurrent message streams.  Hence, a message-per-stream
+   approach requires each message to contain an extra header portion to
+   associate the message with a logical application stream.  In case of
+   short messages, this approach introduces a significant overhead due
+   to STREAM frames and message headers.  It also places the burden on
+   the application to reorder data arriving on multiple QUIC streams.
 
    An alternative is the proposed single-stream mechanism that keeps
    messages arriving in order on a single stream.
