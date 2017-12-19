@@ -116,7 +116,7 @@ Internet-Draft                   quic-pr                   December 2017
 
    stream has already been fully acknowledged.  The problem with this
    approach is that messages transmitted by the application typically
-   belong to a message stream and applications may need to support
+   belong to a message stream, and applications may need to support
    multiple concurrent message streams.  Hence, a message-per-stream
    approach requires each message to contain an extra header portion to
    associate the message with a logical application stream.  In case of
