@@ -58,47 +58,44 @@ document are to be interpreted as described in {{!RFC2119}}.
 Introduction     {#introduction}
 ============
 
-Some applications, especially applications with real-time requirments,
-need a partially reliable transport.  These applications typically
-communicate data in application-specific messages that are serialized
-over QUIC streams.  Applications desire partially reliable transport,
-when their messages expire and lose their usefulness upon timer
-expirations, becoming superseeded by newer messages, or other events
-external to the transport.
+Some applications, especially applications with real-time
+requirements, need a partially reliable transport.  These applications
+typically communicate data in application-specific messages that are
+serialized over QUIC streams.  Applications desire partially reliable
+transport when their messages expire and lose their usefulness due to
+later events (time passing, newer messages, etc).
 
 The content of this draft is intended for
 {{!I-D.ietf-quic-transport}}, {{!I-D.ietf-quic-recovery}} and,
 {{!I-D.ietf-quic-applicability}}.
 
 The key to partial reliablity is notifying the transport and the peer
-when data, previously enqueued for transmission, no longer needs to be
+when data previously enqueued for transmission no longer needs to be
 transmitted.
 
-Multi-Stream Approach
----------------------
+
+Partially Reliabile Streams
+===========================
 
 It is possible to provide partial reliablity without any changes to
 QUIC transport by using QUIC streams, encoding one message per QUIC
-stream.  When the message expires, the sender can resent the stream,
+stream.  When the message expires, the sender can reset the stream,
 causing RST_STREAM frame to be transmitted, unless all data in the
 stream has already been fully acknowledged.  The problem with this
-approach is that messages transmitted by the application are typically
-not independent but a part of a message stream, and applications may
-need to support multiple concurrent message streams.  Hence, a
-message-per-stream approach requires each message to contain an extra
-header portion to associate the message with a logical application
-stream.  In case of short messages, this approach introduces a
-significant overhead.
-
-Single-Stream Approach
-----------------------
+approach is that messages transmitted by the application typically
+belong to a message stream, and applications may need to support
+multiple concurrent message streams.  Hence, a message-per-stream
+approach requires each message to contain an extra header portion to
+associate the message with a logical application stream.  In case of
+short messages, this approach introduces a significant overhead due to
+STREAM frames and message headers. It also places the burden on the
+application to reorder data arriving on multiple QUIC streams.
 
 An alternative is the proposed single-stream mechanism that keeps
 messages arriving in order on a single stream.
 
-
 Min Stream Offset     {#min-stream-offset}
-=================
+-----------------
 
 This proposal introduces a new QUIC stream variable "Min Stream
 Offset" that indicates the smallest retransmittable data offset.  The
@@ -108,12 +105,12 @@ Stream Offset is 0 for all streams.
 
 
 MIN_STREAM_DATA Frame     {#min_stream_data}
-=====================
+---------------------
 
-The MIN_STREAM_DATA frame (types 0x?? and 0x??) is used in flow
-control to inform the peer of the minimum (re-)transmittable data
-offset on a stream.  If the least significant bit is set, Unsent Bytes
-field is present in the frame.
+The MIN_STREAM_DATA frame (types 0x?? (type) and 0x?? (type+1)) is
+used in flow control to inform the peer of the minimum
+(re-)transmittable data offset on a stream.  If the least significant
+bit is set, Unsent Bytes field is present in the frame.
 
 The frame is as follows:
 
@@ -157,21 +154,31 @@ Min Stream Offset ({{min-stream-offset}}) for Stream ID is determined
 by the formula:
 
 ~~~
-  Min Stream Offset = MAX(Min Stream Offset, Sent Data + Unsent Bytes)
+  Min Stream Offset = Sent Data + Unsent Bytes
 ~~~
+
+The Min Stream Offset for a stream MUST NOT be reduced by the sender
+in a subsequent MIN_STREAM_DATA frame, but loss and reordering can
+cause MIN_STREAM_DATA frames to be received out of order.
+MIN_STREAM_DATA frames that do not increase the stream's Min Stream
+Offset MUST be ignored.
 
 
 Effect of MIN_STREAM_DATA on Flow Control   {#flow-control}
 =========================================
+
+Specifying Unsent Bytes separately from Send Data in MIN_STREAM_DATA
+is done to avoid using stream and connection flow control credits to
+notify the other endpoint of bytes that will never be transmitted.
 
 The value of Sent Data field MUST be used in flow control accounting.
 A receipt of a MIN_STREAM_DATA frame MUST advance the stream and
 connection flow control credits, if the maximum data offset received
 on Stream ID is less than Sent Data.
 
-Also, a receipt of MIN_STREAM_DATA with Min Stream Offset beyond the
-stream's MAX_STREAM_DATA SHOULD be treated as a receipt of a
-STREAM_BLOCKED frame.
+Also, a receipt of MIN_STREAM_DATA that advances Min Stream Offset for
+the stream beyond the stream's MAX_STREAM_DATA SHOULD be treated as a
+receipt of a STREAM_BLOCKED frame.
 
 
 Sender Interface and Behavior    {#sender}
