@@ -137,7 +137,7 @@ Internet-Draft                   quic-pr                   December 2017
 
 3.2.  MIN_STREAM_DATA Frame
 
-   The MIN_STREAM_DATA frame (types 0x?? [type] and 0x?? [type+1]) is
+   The MIN_STREAM_DATA frame (types 0x?? (type) and 0x?? (type+1)) is
    used in flow control to inform the peer of the minimum
    (re-)transmittable data offset on a stream.  If the least significant
    bit is set, Unsent Bytes field is present in the frame.
