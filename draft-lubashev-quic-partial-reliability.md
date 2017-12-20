@@ -69,9 +69,8 @@ The content of this draft is intended for
 {{!I-D.ietf-quic-transport}}, {{!I-D.ietf-quic-recovery}} and,
 {{!I-D.ietf-quic-applicability}}.
 
-The key to partial reliablity is notifying the transport and the peer
-when data previously enqueued for transmission no longer needs to be
-transmitted.
+The key to partial reliablity is notifying the peer about data that
+will not be retransmitted.
 
 
 Partially Reliabile Streams
@@ -168,17 +167,29 @@ Effect of MIN_STREAM_DATA on Flow Control   {#flow-control}
 =========================================
 
 Specifying Unsent Bytes separately from Send Data in MIN_STREAM_DATA
-is done to avoid using stream and connection flow control credits to
-notify the other endpoint of bytes that will never be transmitted.
+is done to avoid using its stream and connection flow control credits
+to notify the other endpoint of bytes that have never been and will
+never be transmitted.  Hence, a sender that desires to expire a large
+number of bytes that have never been transmitted can do so in a single
+frame without closing down the connection flow control window,
+affecting other streams, and without a risk of exceeding its stream or
+connection flow control credits.
 
-The value of Sent Data field MUST be used in flow control accounting.
-A receipt of a MIN_STREAM_DATA frame MUST advance the stream and
-connection flow control credits, if the maximum data offset received
-on Stream ID is less than Sent Data.
-
-Also, a receipt of MIN_STREAM_DATA that advances Min Stream Offset for
-the stream beyond the stream's MAX_STREAM_DATA SHOULD be treated as a
+A receipt of MIN_STREAM_DATA that advances Min Stream Offset for the
+stream beyond the stream's MAX_STREAM_DATA SHOULD be treated as a
 receipt of a STREAM_BLOCKED frame.
+
+The value of the largest received offset on the stream is advanced, if
+it smaller than Sent Data.
+
+FIXME START: Must ensure that connection window can only be used by
+the gap in the stream!
+
+  When computing window updates for MAX_STREAM_DATA and MAX_DATA, the
+  receiver SHOULD use the larger of "Min Stream Offset" and "the
+  largest data offset" received for the stream.
+
+FIXME END
 
 
 Sender Interface and Behavior    {#sender}
@@ -189,10 +200,12 @@ to update the minimum retransmittable offset for a stream.  A typical
 sender would call an API function providing this functionality
 whenever any data previously enqueued for transmission expires, per
 application semantics.  The sender would keep track of the message
-boundaries of such data.  If all data between the current Min Stream
-Offset and the new Min Stream Offset has been acknowledged, no action
-is performed by the sender's QUIC implementation.  Otherwise, if there
-is unacknowledged data, a MIN_STREAM_DATA frame is transmitted.
+boundaries and request expiration of data on a message boundary.
+
+If all data between the current Min Stream Offset and the new Min
+Stream Offset has been acknowledged, no action is performed by the
+sender's QUIC implementation.  Otherwise, if there is unacknowledged
+data, a MIN_STREAM_DATA frame is transmitted.
 
 An application may decide to conditionally expire messages based on
 the delivery status of prior messages.  For example, an application
@@ -210,21 +223,28 @@ Stream Offset ({{min-stream-offset}}).
 Receiver Interface and Behavior   {#receiver}
 ===============================
 
-A receiver of MIN_STREAM_DATA MUST use Sent Data for flow control
-accounting (see {{flow-control}}).  The receiver SHOULD assume that
-none of the data up to Min Stream Offset ({{min-stream-offset}}) will
-be retransmitted.
-
-When computing window updates for MAX_STREAM_DATA and MAX_DATA, the
-receiver SHOULD use the larger of "Min Stream Offset" and "the largest
-data offset" received for the stream.
+The receiver SHOULD assume that none of the data up to Min Stream
+Offset ({{min-stream-offset}}) will be retransmitted.
 
 It is recommended that a QUIC library API provides a way for a
 receiver to obtain the length of a gap corresponding to the expired
-data instead of (or in addition to) data octets that follow the gap.
+data in addition to data octets that follow the gap.
 
 A receiver MAY discard any stream data received for an offset smaller
 than Min Stream Offset.
+
+
+Retransmission of MIN_STREAM_DATA    {#retransmission}
+=================================
+
+The most recent MIN_STREAM_DATA frame for a stream MUST be
+retransmitted until the sender is certain that the receiver is not
+expecting retransmission of any expired data.  I.e. the frame MUST be
+retransmitted until either the stream enters "half-closed (local)"
+state or all data between the largest acknowledged Min Stream Offset
+and the current Min Stream Offset has been acknowledged.  Note that
+the later condition includes the trivial case of receiving an
+acknowledgment for the latest MIN_STREAM_DATA frame.
 
 
 IANA Considerations   {#iana}
@@ -243,9 +263,10 @@ Acknowledgments
 ===============
 
 Many thanks to Mike Bishop for his feedback on flow control issues and
-proofreading this draft.  Kudos to the QUIC working group for
-dilligently plowing through hard problems and making thousands of big
-and small decisions to make the Internet better for everyone.
+proofreading the first draft.  Kudos to the QUIC working group for a
+mountain of feedback on this draft and for diligently plowing through
+hard problems and making thousands of big and small decisions to make
+the Internet better for everyone.
 
 
 --- back
