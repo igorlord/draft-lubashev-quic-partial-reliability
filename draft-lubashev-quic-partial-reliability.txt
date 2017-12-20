@@ -4,8 +4,8 @@
 
 QUIC                                                         I. Lubashev
 Internet-Draft                                       Akamai Technologies
-Intended status: Informational                         December 19, 2017
-Expires: June 22, 2018
+Intended status: Informational                         December 20, 2017
+Expires: June 23, 2018
 
 
                   Partially Reliable Streams for QUIC
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on June 22, 2018.
+   This Internet-Draft will expire on June 23, 2018.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Lubashev                  Expires June 22, 2018                 [Page 1]
+Lubashev                  Expires June 23, 2018                 [Page 1]
 
 Internet-Draft                   quic-pr                   December 2017
 
@@ -69,12 +69,13 @@ Table of Contents
      3.1.  Min Stream Offset . . . . . . . . . . . . . . . . . . . .   3
      3.2.  MIN_STREAM_DATA Frame . . . . . . . . . . . . . . . . . .   3
    4.  Effect of MIN_STREAM_DATA on Flow Control . . . . . . . . . .   4
-   5.  Sender Interface and Behavior . . . . . . . . . . . . . . . .   4
+   5.  Sender Interface and Behavior . . . . . . . . . . . . . . . .   5
    6.  Receiver Interface and Behavior . . . . . . . . . . . . . . .   5
-   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   5
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   5
-   9.  Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   5
-   10. Normative References  . . . . . . . . . . . . . . . . . . . .   6
+   7.  Retransmission of MIN_STREAM_DATA . . . . . . . . . . . . . .   5
+   8.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   6
+   9.  Security Considerations . . . . . . . . . . . . . . . . . . .   6
+   10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   6
+   11. Normative References  . . . . . . . . . . . . . . . . . . . .   6
    Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .   6
 
 1.  Notational Conventions
@@ -96,9 +97,8 @@ Table of Contents
    The content of this draft is intended for [I-D.ietf-quic-transport],
    [I-D.ietf-quic-recovery] and, [I-D.ietf-quic-applicability].
 
-   The key to partial reliablity is notifying the transport and the peer
-   when data previously enqueued for transmission no longer needs to be
-   transmitted.
+   The key to partial reliablity is notifying the peer about data that
+   will not be retransmitted.
 
 3.  Partially Reliabile Streams
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Lubashev                  Expires June 22, 2018                 [Page 2]
+Lubashev                  Expires June 23, 2018                 [Page 2]
 
 Internet-Draft                   quic-pr                   December 2017
 
@@ -165,7 +165,7 @@ Internet-Draft                   quic-pr                   December 2017
 
 
 
-Lubashev                  Expires June 22, 2018                 [Page 3]
+Lubashev                  Expires June 23, 2018                 [Page 3]
 
 Internet-Draft                   quic-pr                   December 2017
 
@@ -193,17 +193,38 @@ Internet-Draft                   quic-pr                   December 2017
 4.  Effect of MIN_STREAM_DATA on Flow Control
 
    Specifying Unsent Bytes separately from Send Data in MIN_STREAM_DATA
-   is done to avoid using stream and connection flow control credits to
-   notify the other endpoint of bytes that will never be transmitted.
+   is done to avoid using its stream and connection flow control credits
+   to notify the other endpoint of bytes that have never been and will
+   never be transmitted.  Hence, a sender that desires to expire a large
+   number of bytes that have never been transmitted can do so in a
+   single frame without closing down the connection flow control window,
+   affecting other streams, and without a risk of exceeding its stream
+   or connection flow control credits.
 
-   The value of Sent Data field MUST be used in flow control accounting.
-   A receipt of a MIN_STREAM_DATA frame MUST advance the stream and
-   connection flow control credits, if the maximum data offset received
-   on Stream ID is less than Sent Data.
+   A receipt of MIN_STREAM_DATA that advances Min Stream Offset for the
+   stream beyond the stream's MAX_STREAM_DATA SHOULD be treated as a
+   receipt of a STREAM_BLOCKED frame.
 
-   Also, a receipt of MIN_STREAM_DATA that advances Min Stream Offset
-   for the stream beyond the stream's MAX_STREAM_DATA SHOULD be treated
-   as a receipt of a STREAM_BLOCKED frame.
+   The value of the largest received offset on the stream is advanced,
+   if it smaller than Sent Data.
+
+   FIXME START: Must ensure that connection window can only be used by
+   the gap in the stream!
+
+   When computing window updates for MAX_STREAM_DATA and MAX_DATA, the
+   receiver SHOULD use the larger of "Min Stream Offset" and "the
+   largest data offset" received for the stream.
+
+   FIXME END
+
+
+
+
+
+Lubashev                  Expires June 23, 2018                 [Page 4]
+
+Internet-Draft                   quic-pr                   December 2017
+
 
 5.  Sender Interface and Behavior
 
@@ -212,19 +233,12 @@ Internet-Draft                   quic-pr                   December 2017
    sender would call an API function providing this functionality
    whenever any data previously enqueued for transmission expires, per
    application semantics.  The sender would keep track of the message
-   boundaries of such data.  If all data between the current Min Stream
-   Offset and the new Min Stream Offset has been acknowledged, no action
-   is performed by the sender's QUIC implementation.  Otherwise, if
-   there is unacknowledged data, a MIN_STREAM_DATA frame is transmitted.
+   boundaries and request expiration of data on a message boundary.
 
-
-
-
-
-Lubashev                  Expires June 22, 2018                 [Page 4]
-
-Internet-Draft                   quic-pr                   December 2017
-
+   If all data between the current Min Stream Offset and the new Min
+   Stream Offset has been acknowledged, no action is performed by the
+   sender's QUIC implementation.  Otherwise, if there is unacknowledged
+   data, a MIN_STREAM_DATA frame is transmitted.
 
    An application may decide to conditionally expire messages based on
    the delivery status of prior messages.  For example, an application
@@ -240,49 +254,51 @@ Internet-Draft                   quic-pr                   December 2017
 
 6.  Receiver Interface and Behavior
 
-   A receiver of MIN_STREAM_DATA MUST use Sent Data for flow control
-   accounting (see Section 4).  The receiver SHOULD assume that none of
-   the data up to Min Stream Offset (Section 3.1) will be retransmitted.
-
-   When computing window updates for MAX_STREAM_DATA and MAX_DATA, the
-   receiver SHOULD use the larger of "Min Stream Offset" and "the
-   largest data offset" received for the stream.
+   The receiver SHOULD assume that none of the data up to Min Stream
+   Offset (Section 3.1) will be retransmitted.
 
    It is recommended that a QUIC library API provides a way for a
    receiver to obtain the length of a gap corresponding to the expired
-   data instead of (or in addition to) data octets that follow the gap.
+   data in addition to data octets that follow the gap.
 
    A receiver MAY discard any stream data received for an offset smaller
    than Min Stream Offset.
 
-7.  IANA Considerations
+7.  Retransmission of MIN_STREAM_DATA
 
-   This document has no actions for IANA.
-
-8.  Security Considerations
-
-   This document has no new security considerations.
-
-9.  Acknowledgments
-
-   Many thanks to Mike Bishop for his feedback on flow control issues
-   and proofreading this draft.  Kudos to the QUIC working group for
-   dilligently plowing through hard problems and making thousands of big
-   and small decisions to make the Internet better for everyone.
+   The most recent MIN_STREAM_DATA frame for a stream MUST be
+   retransmitted until the sender is certain that the receiver is not
+   expecting retransmission of any expired data.  I.e. the frame MUST be
+   retransmitted until either the stream enters "half-closed (local)"
+   state or all data between the largest acknowledged Min Stream Offset
+   and the current Min Stream Offset has been acknowledged.  Note that
+   the later condition includes the trivial case of receiving an
+   acknowledgment for the latest MIN_STREAM_DATA frame.
 
 
 
-
-
-
-
-
-Lubashev                  Expires June 22, 2018                 [Page 5]
+Lubashev                  Expires June 23, 2018                 [Page 5]
 
 Internet-Draft                   quic-pr                   December 2017
 
 
-10.  Normative References
+8.  IANA Considerations
+
+   This document has no actions for IANA.
+
+9.  Security Considerations
+
+   This document has no new security considerations.
+
+10.  Acknowledgments
+
+   Many thanks to Mike Bishop for his feedback on flow control issues
+   and proofreading the first draft.  Kudos to the QUIC working group
+   for a mountain of feedback on this draft and for diligently plowing
+   through hard problems and making thousands of big and small decisions
+   to make the Internet better for everyone.
+
+11.  Normative References
 
    [I-D.ietf-quic-applicability]
               Kuehlewind, M. and B. Trammell, "Applicability of the QUIC
@@ -317,20 +333,4 @@ Author's Address
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Lubashev                  Expires June 22, 2018                 [Page 6]
+Lubashev                  Expires June 23, 2018                 [Page 6]
