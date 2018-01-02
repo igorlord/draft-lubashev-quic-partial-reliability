@@ -62,7 +62,7 @@ Some applications, especially applications with real-time
 requirements, need a partially reliable transport.  These applications
 typically communicate data in application-specific messages that are
 serialized over QUIC streams.  Applications desire partially reliable
-transport when their messages expire and lose their usefulness due to
+transport, when their messages expire and lose their usefulness due to
 later events (time passing, newer messages, etc).
 
 The content of this draft is intended for
@@ -70,7 +70,8 @@ The content of this draft is intended for
 {{!I-D.ietf-quic-applicability}}.
 
 The key to partial reliablity is notifying the peer about data that
-will not be retransmitted.
+will not be retransmitted and managing flow control for the
+connection.
 
 
 Partially Reliabile Streams
@@ -89,6 +90,9 @@ associate the message with a logical application stream.  In case of
 short messages, this approach introduces a significant overhead due to
 STREAM frames and message headers. It also places the burden on the
 application to reorder data arriving on multiple QUIC streams.
+Furthermore, splitting each application stream into multiple QUIC
+streams renders QUIC per-stream flow control ineffective and requires
+an application to build its own.
 
 An alternative is the proposed single-stream mechanism that keeps
 messages arriving in order on a single stream.
@@ -149,6 +153,10 @@ Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.  If Unsent
 Bytes field is present in the frame, it MUST NOT be 0 (reserved for
 the future use).
 
+If Unsent Bytes field is present in the frame, it implies that all
+data previously sent to the receiver on the stream has expired.
+Hence, Sent Data is implicitly the Largest Sent Data on the stream.
+
 Min Stream Offset ({{min-stream-offset}}) for Stream ID is determined
 by the formula:
 
@@ -167,20 +175,66 @@ Effect of MIN_STREAM_DATA on Flow Control   {#flow-control}
 =========================================
 
 Specifying Unsent Bytes separately from Send Data in MIN_STREAM_DATA
-is done to avoid using its stream and connection flow control credits
-to notify the other endpoint of bytes that have never been and will
-never be transmitted.  Hence, a sender that desires to expire a large
-number of bytes that have never been transmitted can do so in a single
-frame without closing down the connection flow control window,
+frame is done to avoid using its stream and connection flow control
+credits to notify the other endpoint of bytes that have never been and
+will never be transmitted.  Hence, a sender that desires to expire a
+large number of bytes that have never been transmitted can do so in a
+single frame without closing down the connection flow control window,
 affecting other streams, and without a risk of exceeding its stream or
 connection flow control credits.
 
-A receipt of MIN_STREAM_DATA that advances Min Stream Offset for the
-stream beyond the stream's MAX_STREAM_DATA SHOULD be treated as a
-receipt of a STREAM_BLOCKED frame.
 
-The value of the largest received offset on the stream is advanced, if
-it smaller than Sent Data.
+Sender Flow Control    {#flow-control-sender}
+-------------------
+
+When an ACK frame is received for a packet containing a
+MIN_STREAM_OFFSET frame, and the current Largest Data Sent of the
+stream is smaller than Min Stream Offset of the acknowledged
+MIN_STREAM_OFFSET frame, the Largest Data Sent is advanced to the Min
+Stream Offset.  Note that this can only happen, when Unsent Bytes is
+non-zero in the MIN_STREAM_OFFSET frame.
+
+If the Largest Data Sent for at least one stream was advanced due to
+the receipt of a packet with an ACK frame, and, after processing that
+entire packet, the sum of the Largest Data Sent on all streams -
+including streams in terminal states but excluding stream 0 - exceeds
+MAX_DATA, the sender MUST terminate a connection with a
+QUIC_FLOW_CONTROL_SENT_TOO_MUCH_DATA error.
+
+It is possible that the Largest Data Sent for at least one stream will
+be advanced past MAX_STREAM_DATA for that stream.  In that case, no
+more data octets can be sent on the stream until a MAX_STREAM_DATA
+frame advancing the maximum offset is received.  Note that this does
+not prohibit using the Largest Data Sent beyond MAX_STREAM_DATA in an
+RST_STREAM frame, a MIN_STREAM_DATA frame, or a STREAM frame with no
+data and FIN bit set.
+
+
+TODO: Work on this!
+
+Receiver Flow Control    {#flow-control-receiver}
+---------------------
+
+The value of the Largest Received Offset on the stream is immediately
+advanced, if it is smaller than Sent Data.
+
+When computing window updates for MAX_STREAM_DATA and MAX_DATA frames,
+the receiver SHOULD use the larger of Min Stream Offset and Largest
+Received Offset for the stream.
+
+ACK of MIN_STREAM_DATA    {#ack-min-stream-data}
+----------------------
+
+Sending an ACK frame for a packet containing MIN_STREAM_DATA frame that advanced Min Stream Offset past Largest
+
+Received Offset for the stream causes Largest
+Received Offset to be
+
+
+ACK of MIN_STREAM_DATA and MAX_DATA    {#ack-max-data}
+-----------------------------------
+
+
 
 FIXME START: Must ensure that connection window can only be used by
 the gap in the stream!
