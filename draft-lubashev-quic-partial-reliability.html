@@ -286,8 +286,6 @@ address {
 <link href="#rfc.section.4" rel="Chapter" title="4 Effect of MIN_STREAM_DATA on Flow Control">
 <link href="#rfc.section.4.1" rel="Chapter" title="4.1 Sender Flow Control">
 <link href="#rfc.section.4.2" rel="Chapter" title="4.2 Receiver Flow Control">
-<link href="#rfc.section.4.3" rel="Chapter" title="4.3 ACK of MIN_STREAM_DATA">
-<link href="#rfc.section.4.4" rel="Chapter" title="4.4 ACK of MIN_STREAM_DATA and MAX_DATA">
 <link href="#rfc.section.5" rel="Chapter" title="5 Sender Interface and Behavior">
 <link href="#rfc.section.6" rel="Chapter" title="6 Receiver Interface and Behavior">
 <link href="#rfc.section.7" rel="Chapter" title="7 Retransmission of MIN_STREAM_DATA">
@@ -303,7 +301,7 @@ address {
 
   <meta name="dct.creator" content="Lubashev, I." />
   <meta name="dct.identifier" content="urn:ietf:id:draft-lubashev-quic-partial-reliability-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2018-1-7" />
+  <meta name="dct.issued" scheme="ISO8601" content="2018-1-8" />
   <meta name="dct.abstract" content="This memo introduces a MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision. The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts." />
   <meta name="description" content="This memo introduces a MIN_STREAM_DATA frame to enable partial reliability for QUIC streams.  The MIN_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision. The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts." />
 
@@ -324,10 +322,10 @@ address {
 </tr>
 <tr>
 <td class="left">Intended status: Informational</td>
-<td class="right">January 7, 2018</td>
+<td class="right">January 8, 2018</td>
 </tr>
 <tr>
-<td class="left">Expires: July 11, 2018</td>
+<td class="left">Expires: July 12, 2018</td>
 <td class="right"></td>
 </tr>
 
@@ -344,7 +342,7 @@ address {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at https://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on July 11, 2018.</p>
+<p>This Internet-Draft will expire on July 12, 2018.</p>
 <h1 id="rfc.copyrightnotice"><a href="#rfc.copyrightnotice">Copyright Notice</a></h1>
 <p>Copyright (c) 2018 IETF Trust and the persons identified as the document authors.  All rights reserved.</p>
 <p>This document is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents (https://trustee.ietf.org/license-info) in effect on the date of publication of this document.  Please review these documents carefully, as they describe your rights and restrictions with respect to this document.  Code Components extracted from this document must include Simplified BSD License text as described in Section 4.e of the Trust Legal Provisions and are provided without warranty as described in the Simplified BSD License.</p>
@@ -369,10 +367,6 @@ address {
 <ul><li>4.1.   <a href="#rfc.section.4.1">Sender Flow Control</a>
 </li>
 <li>4.2.   <a href="#rfc.section.4.2">Receiver Flow Control</a>
-</li>
-<li>4.3.   <a href="#rfc.section.4.3">ACK of MIN_STREAM_DATA</a>
-</li>
-<li>4.4.   <a href="#rfc.section.4.4">ACK of MIN_STREAM_DATA and MAX_DATA</a>
 </li>
 </ul><li>5.   <a href="#rfc.section.5">Sender Interface and Behavior</a>
 </li>
@@ -447,33 +441,41 @@ address {
   Min Stream Offset = Sent Data + Unsent Bytes
 </pre>
 <p id="rfc.section.3.2.p.8">The Min Stream Offset for a stream MUST NOT be reduced by the sender in a subsequent MIN_STREAM_DATA frame, but loss and reordering can cause MIN_STREAM_DATA frames to be received out of order.  MIN_STREAM_DATA frames that do not increase the stream&#8217;s Min Stream Offset MUST be ignored.</p>
+<p id="rfc.section.3.2.p.9">The sender MUST NOT send a STREAM frame with an Offset smaller then Min Stream Offset for the stream.</p>
+<p id="rfc.section.3.2.p.10">The value of the Largest Received Offset of the stream is immediately advanced upon receipt, if it is smaller than Sent Data.</p>
 <h1 id="rfc.section.4">
 <a href="#rfc.section.4">4.</a> <a href="#flow-control" id="flow-control">Effect of MIN_STREAM_DATA on Flow Control</a>
 </h1>
 <p id="rfc.section.4.p.1">Specifying Unsent Bytes separately from Send Data in MIN_STREAM_DATA frame is done to avoid using its stream and connection flow control credits to notify the other endpoint of bytes that have never been and will never be transmitted.  Hence, a sender that desires to expire a large number of bytes that have never been transmitted can do so in a single frame without closing down the connection flow control window, affecting other streams, and without a risk of exceeding its stream or connection flow control credits.</p>
+<p id="rfc.section.4.p.2">The flow control is the most complex part of the proposal.  The flow control has two goals:</p>
+<p></p>
+
+<ol>
+<li>Allow the sender to notify the receiver about unsent bytes past MAX_STREAM_DATA, requesting that the receiver advance its stream and connection flow control windows to accomodate skipping those unsent bytes. That needs to be done without blocking the rest of the streams on the connection for an rtt (until the sender receives a corresponding MAX_DATA frame).</li>
+<li>Ensure that the connection flow control credits designated for skipping unsent bytes cannot be used to send stream data on other streams.</li>
+</ol>
 <h1 id="rfc.section.4.1">
 <a href="#rfc.section.4.1">4.1.</a> <a href="#flow-control-sender" id="flow-control-sender">Sender Flow Control</a>
 </h1>
-<p id="rfc.section.4.1.p.1">When an ACK frame is received for a packet containing a MIN_STREAM_OFFSET frame, and the current Largest Data Sent of the stream is smaller than Min Stream Offset of the acknowledged MIN_STREAM_OFFSET frame, the Largest Data Sent is advanced to the Min Stream Offset.  Note that this can only happen, when Unsent Bytes is non-zero in the MIN_STREAM_OFFSET frame.</p>
+<p id="rfc.section.4.1.p.1">When an ACK frame is received for a packet containing a MIN_STREAM_OFFSET frame and the current Largest Data Sent of the stream is smaller than Min Stream Offset of the acknowledged MIN_STREAM_OFFSET frame, the Largest Data Sent is advanced to the Min Stream Offset.  Note that this can only happen, when Unsent Bytes is non-zero in the MIN_STREAM_OFFSET frame.</p>
 <p id="rfc.section.4.1.p.2">If the Largest Data Sent for at least one stream was advanced due to the receipt of a packet with an ACK frame, and, after processing that entire packet, the sum of the Largest Data Sent on all streams - including streams in terminal states but excluding stream 0 - exceeds MAX_DATA, the sender MUST terminate a connection with a QUIC_FLOW_CONTROL_SENT_TOO_MUCH_DATA error.</p>
-<p id="rfc.section.4.1.p.3">It is possible that the Largest Data Sent for at least one stream will be advanced past MAX_STREAM_DATA for that stream.  In that case, no more data octets can be sent on the stream until a MAX_STREAM_DATA frame advancing the maximum offset is received.  Note that this does not prohibit using the Largest Data Sent beyond MAX_STREAM_DATA in an RST_STREAM frame, a MIN_STREAM_DATA frame, or a STREAM frame with no data and FIN bit set.</p>
-<p id="rfc.section.4.1.p.4">TODO: Work on this!</p>
+<p id="rfc.section.4.1.p.3">It is possible that the Largest Data Sent for at least one stream will be advanced past MAX_STREAM_DATA for that stream.  In that case, no data octets can be sent on the stream until a MAX_STREAM_DATA frame advancing the maximum offset is received.  Note that this does not prohibit using the Largest Data Sent beyond MAX_STREAM_DATA in an RST_STREAM frame, a MIN_STREAM_DATA frame, or a STREAM frame with no data and FIN bit set.</p>
+<p id="rfc.section.4.1.p.4">It is possible that Largest Data Sent will be advanced due to an ACK frame on a closed stream, if it was closed via RST_STREAM.</p>
 <h1 id="rfc.section.4.2">
 <a href="#rfc.section.4.2">4.2.</a> <a href="#flow-control-receiver" id="flow-control-receiver">Receiver Flow Control</a>
 </h1>
-<p id="rfc.section.4.2.p.1">The value of the Largest Received Offset on the stream is immediately advanced, if it is smaller than Sent Data.</p>
-<p id="rfc.section.4.2.p.2">When computing window updates for MAX_STREAM_DATA and MAX_DATA frames, the receiver SHOULD use the larger of Min Stream Offset and Largest Received Offset for the stream.</p>
-<h1 id="rfc.section.4.3">
-<a href="#rfc.section.4.3">4.3.</a> <a href="#ack-min-stream-data" id="ack-min-stream-data">ACK of MIN_STREAM_DATA</a>
-</h1>
-<p id="rfc.section.4.3.p.1">Sending an ACK frame for a packet containing MIN_STREAM_DATA frame that advanced Min Stream Offset past Largest</p>
-<p id="rfc.section.4.3.p.2">Received Offset for the stream causes Largest Received Offset to be</p>
-<h1 id="rfc.section.4.4">
-<a href="#rfc.section.4.4">4.4.</a> <a href="#ack-max-data" id="ack-max-data">ACK of MIN_STREAM_DATA and MAX_DATA</a>
-</h1>
-<p id="rfc.section.4.4.p.1">FIXME START: Must ensure that connection window can only be used by the gap in the stream!</p>
-<p id="rfc.section.4.4.p.2">When computing window updates for MAX_STREAM_DATA and MAX_DATA, the receiver SHOULD use the larger of &#8220;Min Stream Offset&#8221; and &#8220;the largest data offset&#8221; received for the stream.</p>
-<p id="rfc.section.4.4.p.3">FIXME END</p>
+<p id="rfc.section.4.2.p.1">When an ACK frame is sent acknowledging a packet containing a MIN_STREAM_DATA frame for a stream with the current Largest Received Offset smaller than the current Min Stream Offset:</p>
+<p></p>
+
+<ul>
+<li>The stream&#8217;s Largest Received Offset is saved as the stream&#8217;s &#8220;Last Sent Data&#8221;.  (It will be the Sent Data of the last MIN_STREAM_DATA frame.).</li>
+<li>The stream&#8217;s Largest Received Offset MUST be advanced to Min Stream Offset, and MAX_DATA MUST be advanced by at least the same amount.</li>
+<li>A stream whose Largest Received Offset was last updated due to this rule is called a &#8220;Min-Promoted&#8221; stream.</li>
+<li>A MIN_STREAM_DATA frame with Sent Data equal to Last Sent Data for a &#8220;Min-Promoted&#8221; stream is called a &#8220;Min-Promoted&#8221; MIN_STREAM_DATA frame.  (There can be multiple &#8220;Min-Promoted&#8221; MIN_STREAM_DATA frames for a &#8220;Min-Promoted&#8221; stream in case MIN_STREAM_DATA frame was received multiple times with the same Sent Data.)</li>
+<li>A packet containing a &#8220;Min-Promoted&#8221; MIN_STREAM_DATA frame is called a &#8220;Min-Promoted&#8221; packet.</li>
+</ul>
+<p id="rfc.section.4.2.p.3">A MAX_DATA frame MUST be sent in the same packet as an ACK frame acknowledging a &#8220;Min-Promoted&#8221; packet.</p>
+<p id="rfc.section.4.2.p.4">If a MAX_DATA frame is sent, the same packet MUST contain an ACK frame acknowledging all &#8220;Min-Promoted&#8221; packets, whose acknowledgement has not yet been acknowledged by the sender.</p>
 <h1 id="rfc.section.5">
 <a href="#rfc.section.5">5.</a> <a href="#sender" id="sender">Sender Interface and Behavior</a>
 </h1>
