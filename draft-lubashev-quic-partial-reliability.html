@@ -451,7 +451,7 @@ address {
 <p></p>
 
 <ol>
-<li>Allow the sender to notify the receiver about unsent bytes past MAX_STREAM_DATA, requesting that the receiver advance its stream and connection flow control windows to accomodate skipping those unsent bytes. That needs to be done without blocking the rest of the streams on the connection for an rtt (until the sender receives a corresponding MAX_DATA frame).</li>
+<li>Allow the sender to notify the receiver about unsent bytes past Sent Data, requesting that the receiver advance its stream and connection flow control windows to accomodate skipping Unsent Bytes. That needs to be done without blocking the rest of the streams for an rtt (until the sender receives a corresponding MAX_DATA frame).</li>
 <li>Ensure that the connection flow control credits designated for skipping unsent bytes cannot be used to send stream data on other streams.</li>
 </ol>
 <h1 id="rfc.section.4.1">
