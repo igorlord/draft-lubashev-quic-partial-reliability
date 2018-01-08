@@ -170,6 +170,12 @@ cause MIN_STREAM_DATA frames to be received out of order.
 MIN_STREAM_DATA frames that do not increase the stream's Min Stream
 Offset MUST be ignored.
 
+The sender MUST NOT send a STREAM frame with an Offset smaller then
+Min Stream Offset for the stream.
+
+The value of the Largest Received Offset of the stream is immediately
+advanced upon receipt, if it is smaller than Sent Data.
+
 
 Effect of MIN_STREAM_DATA on Flow Control   {#flow-control}
 =========================================
@@ -183,12 +189,26 @@ single frame without closing down the connection flow control window,
 affecting other streams, and without a risk of exceeding its stream or
 connection flow control credits.
 
+The flow control is the most complex part of the proposal.  The flow
+control has two goals:
+
+1. Allow the sender to notify the receiver about unsent bytes past
+   Sent Data, requesting that the receiver advance its stream and
+   connection flow control windows to accomodate skipping Unsent
+   Bytes. That needs to be done without blocking the rest of the
+   streams for an rtt (until the sender receives a corresponding
+   MAX_DATA frame).
+
+2. Ensure that the connection flow control credits designated for
+   skipping unsent bytes cannot be used to send stream data on other
+   streams.
+
 
 Sender Flow Control    {#flow-control-sender}
 -------------------
 
 When an ACK frame is received for a packet containing a
-MIN_STREAM_OFFSET frame, and the current Largest Data Sent of the
+MIN_STREAM_OFFSET frame and the current Largest Data Sent of the
 stream is smaller than Min Stream Offset of the acknowledged
 MIN_STREAM_OFFSET frame, the Largest Data Sent is advanced to the Min
 Stream Offset.  Note that this can only happen, when Unsent Bytes is
@@ -203,47 +223,48 @@ QUIC_FLOW_CONTROL_SENT_TOO_MUCH_DATA error.
 
 It is possible that the Largest Data Sent for at least one stream will
 be advanced past MAX_STREAM_DATA for that stream.  In that case, no
-more data octets can be sent on the stream until a MAX_STREAM_DATA
-frame advancing the maximum offset is received.  Note that this does
-not prohibit using the Largest Data Sent beyond MAX_STREAM_DATA in an
+data octets can be sent on the stream until a MAX_STREAM_DATA frame
+advancing the maximum offset is received.  Note that this does not
+prohibit using the Largest Data Sent beyond MAX_STREAM_DATA in an
 RST_STREAM frame, a MIN_STREAM_DATA frame, or a STREAM frame with no
 data and FIN bit set.
 
+It is possible that Largest Data Sent will be advanced due to an ACK
+frame on a closed stream, if it was closed via RST_STREAM.
 
-TODO: Work on this!
 
 Receiver Flow Control    {#flow-control-receiver}
 ---------------------
 
-The value of the Largest Received Offset on the stream is immediately
-advanced, if it is smaller than Sent Data.
+When an ACK frame is sent acknowledging a packet containing a
+MIN_STREAM_DATA frame for a stream with the current Largest Received
+Offset smaller than the current Min Stream Offset:
 
-When computing window updates for MAX_STREAM_DATA and MAX_DATA frames,
-the receiver SHOULD use the larger of Min Stream Offset and Largest
-Received Offset for the stream.
+* The stream's Largest Received Offset is saved as the stream's "Last
+  Sent Data".  (It will be the Sent Data of the last MIN_STREAM_DATA
+  frame.).
 
-ACK of MIN_STREAM_DATA    {#ack-min-stream-data}
-----------------------
+* The stream's Largest Received Offset MUST be advanced to Min Stream
+  Offset, and MAX_DATA MUST be advanced by at least the same amount.
 
-Sending an ACK frame for a packet containing MIN_STREAM_DATA frame that advanced Min Stream Offset past Largest
+* A stream whose Largest Received Offset was last updated due to this
+  rule is called a "Min-Promoted" stream.
 
-Received Offset for the stream causes Largest
-Received Offset to be
+* A MIN_STREAM_DATA frame with Sent Data equal to Last Sent Data for a
+  "Min-Promoted" stream is called a "Min-Promoted" MIN_STREAM_DATA
+  frame.  (There can be multiple "Min-Promoted" MIN_STREAM_DATA frames
+  for a "Min-Promoted" stream in case MIN_STREAM_DATA frame was
+  received multiple times with the same Sent Data.)
 
+* A packet containing a "Min-Promoted" MIN_STREAM_DATA frame is called
+  a "Min-Promoted" packet.
 
-ACK of MIN_STREAM_DATA and MAX_DATA    {#ack-max-data}
------------------------------------
+A MAX_DATA frame MUST be sent in the same packet as an ACK frame
+acknowledging a "Min-Promoted" packet.
 
-
-
-FIXME START: Must ensure that connection window can only be used by
-the gap in the stream!
-
-  When computing window updates for MAX_STREAM_DATA and MAX_DATA, the
-  receiver SHOULD use the larger of "Min Stream Offset" and "the
-  largest data offset" received for the stream.
-
-FIXME END
+If a MAX_DATA frame is sent, the same packet MUST contain an ACK frame
+acknowledging all "Min-Promoted" packets, whose acknowledgement has
+not yet been acknowledged by the sender.
 
 
 Sender Interface and Behavior    {#sender}
