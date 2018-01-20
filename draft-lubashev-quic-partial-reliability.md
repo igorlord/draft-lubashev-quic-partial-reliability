@@ -69,15 +69,15 @@ The content of this draft is intended for
 {{!I-D.ietf-quic-transport}}, {{!I-D.ietf-quic-recovery}} and,
 {{!I-D.ietf-quic-applicability}}.
 
-The key to partial reliablity is notifying the peer about data that
+The key to partial reliability is notifying the peer about data that
 will not be retransmitted and managing flow control for the
 connection.
 
 
-Partially Reliabile Streams
-===========================
+Partially Reliable Streams
+==========================
 
-It is possible to provide partial reliablity without any changes to
+It is possible to provide partial reliability without any changes to
 QUIC transport by using QUIC streams, encoding one message per QUIC
 stream.  When the message expires, the sender can reset the stream,
 causing RST_STREAM frame to be transmitted, unless all data in the
@@ -181,90 +181,92 @@ Effect of MIN_STREAM_DATA on Flow Control   {#flow-control}
 =========================================
 
 Specifying Unsent Bytes separately from Send Data in MIN_STREAM_DATA
-frame is done to avoid using its stream and connection flow control
-credits to notify the other endpoint of bytes that have never been and
-will never be transmitted.  Hence, a sender that desires to expire a
-large number of bytes that have never been transmitted can do so in a
-single frame without closing down the connection flow control window,
-affecting other streams, and without a risk of exceeding its stream or
-connection flow control credits.
+frame avoids consuming stream and connection flow control credits for
+Unsent Bytes. Flow control credits protect receiver buffers, but
+Unsent Bytes correspond to bytes that will not need buffering. A
+sender that desires to expire a large number of bytes that have never
+been transmitted can do so in a single frame and without closing down
+the connection flow control window, because Unsent Bytes do not
+require flow control credits.
 
-The flow control is the most complex part of the proposal.  The flow
-control has two goals:
+Flow control accounting is the most complex part of the proposal.  The
+flow control has two goals:
 
-1. Allow the sender to notify the receiver about unsent bytes past
+1. Allow the sender to notify the receiver about Unsent Bytes past
    Sent Data, requesting that the receiver advance its stream and
-   connection flow control windows to accomodate skipping Unsent
+   connection flow control windows to accommodate skipping Unsent
    Bytes. That needs to be done without blocking the rest of the
    streams for an rtt (until the sender receives a corresponding
    MAX_DATA frame).
 
 2. Ensure that the connection flow control credits designated for
-   skipping unsent bytes cannot be used to send stream data on other
-   streams.
+   skipping Unsent Bytes (that do not need buffering on the receiver)
+   cannot be used to send stream data on other streams.
 
 
 Sender Flow Control    {#flow-control-sender}
 -------------------
 
 When an ACK frame is received for a packet containing a
-MIN_STREAM_OFFSET frame and the current Largest Data Sent of the
-stream is smaller than Min Stream Offset of the acknowledged
-MIN_STREAM_OFFSET frame, the Largest Data Sent is advanced to the Min
-Stream Offset.  Note that this can only happen, when Unsent Bytes is
-non-zero in the MIN_STREAM_OFFSET frame.
+MIN_STREAM_OFFSET frame and the Current Sent Data of the stream is
+smaller than Min Stream Offset of the acknowledged MIN_STREAM_OFFSET
+frame, the Current Sent Data is advanced to the Min Stream Offset.
+(Note that this can only happen, when Unsent Bytes is non-zero in the
+acknowledged MIN_STREAM_OFFSET frame.)
 
-If the Largest Data Sent for at least one stream was advanced due to
-the receipt of a packet with an ACK frame, and, after processing that
-entire packet, the sum of the Largest Data Sent on all streams -
+If the Current Sent Data for at least one stream was advanced due to
+the receipt of a packet containing an ACK frame, and, after processing
+that entire packet, the sum of the Current Sent Data on all streams -
 including streams in terminal states but excluding stream 0 - exceeds
 MAX_DATA, the sender MUST terminate a connection with a
 QUIC_FLOW_CONTROL_SENT_TOO_MUCH_DATA error.
 
-It is possible that the Largest Data Sent for at least one stream will
+It is possible that the Current Sent Data for at least one stream will
 be advanced past MAX_STREAM_DATA for that stream.  In that case, no
-data octets can be sent on the stream until a MAX_STREAM_DATA frame
+data octets can be sent on that stream until a MAX_STREAM_DATA frame
 advancing the maximum offset is received.  Note that this does not
-prohibit using the Largest Data Sent beyond MAX_STREAM_DATA in an
+prohibit using the Current Sent Data beyond MAX_STREAM_DATA in an
 RST_STREAM frame, a MIN_STREAM_DATA frame, or a STREAM frame with no
 data and FIN bit set.
 
-It is possible that Largest Data Sent will be advanced due to an ACK
+It is possible that Current Sent Data will be advanced due to an ACK
 frame on a closed stream, if it was closed via RST_STREAM.
 
 
 Receiver Flow Control    {#flow-control-receiver}
 ---------------------
 
+A stream whose Largest Received Offset smaller than the current Min
+Stream Offset is called a "Tail Gap" stream.
+
 When an ACK frame is sent acknowledging a packet containing a
-MIN_STREAM_DATA frame for a stream with the current Largest Received
-Offset smaller than the current Min Stream Offset:
+MIN_STREAM_DATA frame for a "Tail Gap" stream:
 
 * The stream's Largest Received Offset is saved as the stream's "Last
-  Sent Data".  (It will be the Sent Data of the last MIN_STREAM_DATA
-  frame.).
+  Sent Data".  (It will be the Sent Data of the last processed
+  MIN_STREAM_DATA frame for the stream.).
 
 * The stream's Largest Received Offset MUST be advanced to Min Stream
   Offset, and MAX_DATA MUST be advanced by at least the same amount.
 
 * A stream whose Largest Received Offset was last updated due to this
-  rule is called a "Min-Promoted" stream.
+  rule is called a "Gap-ACKed" stream.
 
 * A MIN_STREAM_DATA frame with Sent Data equal to Last Sent Data for a
-  "Min-Promoted" stream is called a "Min-Promoted" MIN_STREAM_DATA
-  frame.  (There can be multiple "Min-Promoted" MIN_STREAM_DATA frames
-  for a "Min-Promoted" stream in case MIN_STREAM_DATA frame was
-  received multiple times with the same Sent Data.)
+  "Gap-ACKed" stream is called a "Gap-ACKed" MIN_STREAM_DATA frame.
+  (There can be multiple "Gap-ACKed" MIN_STREAM_DATA frames for a
+  "Gap-ACKed" stream in case MIN_STREAM_DATA frame was received
+  multiple times with the same Sent Data.)
 
-* A packet containing a "Min-Promoted" MIN_STREAM_DATA frame is called
-  a "Min-Promoted" packet.
+* A packet containing a "Gap-ACKed" MIN_STREAM_DATA frame is called a
+  "Gap-ACKed" packet, unless an acknowledgment of that packet has
+  been acknowledged by the sender.
 
 A MAX_DATA frame MUST be sent in the same packet as an ACK frame
-acknowledging a "Min-Promoted" packet.
+acknowledging a "Gap-ACKed" packet.
 
-If a MAX_DATA frame is sent, the same packet MUST contain an ACK frame
-acknowledging all "Min-Promoted" packets, whose acknowledgement has
-not yet been acknowledged by the sender.
+If a MAX_DATA frame is sent, the same packet MUST contain ACK frames
+acknowledging all "Gap-ACKed" packets.
 
 
 Sender Interface and Behavior    {#sender}
@@ -272,26 +274,26 @@ Sender Interface and Behavior    {#sender}
 
 It is recommended that a QUIC library API provides a way for a sender
 to update the minimum retransmittable offset for a stream.  A typical
-sender would call an API function providing this functionality
-whenever any data previously enqueued for transmission expires, per
-application semantics.  The sender would keep track of the message
-boundaries and request expiration of data on a message boundary.
+sender would call this API function whenever data previously enqueued
+for transmission expires, per application semantics.  The sender would
+keep track of the message boundaries and request expiration of data on
+a message boundary.
 
 If all data between the current Min Stream Offset and the new Min
 Stream Offset has been acknowledged, no action is performed by the
-sender's QUIC implementation.  Otherwise, if there is unacknowledged
-data, a MIN_STREAM_DATA frame is transmitted.
+sender's QUIC transport.  Otherwise, if there is unacknowledged data,
+a MIN_STREAM_DATA frame is transmitted.
 
 An application may decide to conditionally expire messages based on
 the delivery status of prior messages.  For example, an application
 may wish to ensure that its large messages are delivered at least at a
 given minimum rate before expiring a partially-delivered message just
-because their is a newer message to deliver.  That is, if the rate of
+because there is a newer message to deliver.  That is, if the rate of
 data the application wishes to write exceeds the network's throughput,
 the application may want to ensure that at least some messages are
 delivered in their entirety.  To support this use case, it is
 recommended that a QUIC library API provides a way for the sender to
-minitor the smallest unacknowledged stream offset greater than Min
+monitor the smallest unacknowledged stream offset greater than Min
 Stream Offset ({{min-stream-offset}}).
 
 
@@ -302,8 +304,8 @@ The receiver SHOULD assume that none of the data up to Min Stream
 Offset ({{min-stream-offset}}) will be retransmitted.
 
 It is recommended that a QUIC library API provides a way for a
-receiver to obtain the length of a gap corresponding to the expired
-data in addition to data octets that follow the gap.
+receiver application to obtain the length of a gap corresponding to
+the expired data in addition to data octets that follow the gap.
 
 A receiver MAY discard any stream data received for an offset smaller
 than Min Stream Offset.
@@ -337,11 +339,11 @@ This document has no new security considerations.
 Acknowledgments
 ===============
 
-Many thanks to Mike Bishop for his feedback on flow control issues and
-proofreading the first draft.  Kudos to the QUIC working group for a
-mountain of feedback on this draft and for diligently plowing through
-hard problems and making thousands of big and small decisions to make
-the Internet better for everyone.
+Many thanks to Mike Bishop and Ian Swett for their feedback on flow
+control issues.  Kudos to the QUIC working group for a mountain of
+feedback on this draft and for diligently plowing through hard
+problems, making thousands of big and small decisions, to make the
+Internet better for everyone.
 
 
 --- back
