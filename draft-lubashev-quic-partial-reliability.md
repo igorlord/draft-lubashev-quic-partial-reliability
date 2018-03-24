@@ -108,10 +108,11 @@ Offset ({{min-stream-offset}}) and Exempt Stream Bytes
 Min Stream Offset     {#min-stream-offset}
 -----------------
 
-Min Stream Offset that indicates the smallest retransmittable data
-offset for the stream.  The receiver SHOULD NOT wait for any data at
-offsets smaller than Min Stream Offset to be retransmitted by the
-sender.  Initially, Min Stream Offset is 0 for all streams.
+Min Stream Offset indicates the smallest retransmittable data offset
+for the stream.  The receiver SHOULD NOT wait for any data at offsets
+smaller than Min Stream Offset to be (re-)transmitted by the sender.
+The sender SHOULD NOT send any data at offsets smaller than Min Stream
+Offset.  Initially, Min Stream Offset is 0 for all streams.
 
 
 Exempt Stream Bytes      {#exempt-stream-bytes}
@@ -122,13 +123,37 @@ not count toward connection flow control limit.  Initially, Exempt
 Stream Bytes is 0 for all streams.
 
 
-MIN_STREAM_DATA Frame     {#min_stream_data}
----------------------
+New and Updated Frames
+======================
 
-The MIN_STREAM_DATA frame (types 0x?? (type) and 0x?? (type+1)) is
-used in flow control to inform the peer of the minimum
-(re-)transmittable data offset on a stream.  If the least significant
-bit is set, Unsent Bytes field is present in the frame.
+This proposal updates MAX_STREAM_DATA ({{frame-max-stream-data}})
+frame and introduces a new MIN_STREAM_DATA frame
+({{frame-min-stream-data}}).
+
+
+## MAX_STREAM_DATA Frame     {#frame-max-stream-data}
+
+The text with *emphasis* is added to the description of MAX_STREAM_DATA
+frame.  Also, optional Minimum Stream Offset and Exempt Stream Bytes
+field sare added to MAX_STREAM_DATA frame.
+
+The MAX_STREAM_DATA frame (type=0x05 or type=0xXY) is used in flow
+control to inform a peer of the maximum amount of data that can be
+sent on a stream *and, optionally, update Min Stream Offset
+({{min-stream-offset}}) and Exempt Stream Bytes
+({{exempt-stream-bytes}}) for this stream*.
+
+*If type=0xXY, Minimum Stream Offset and Exempt Stream Bytes fields
+are also present in the frame.*
+
+An endpoint that receives a MAX_STREAM_DATA frame for a receive-only stream
+MUST terminate the connection with error PROTOCOL_VIOLATION.
+
+An endpoint that receives a MAX_STREAM_DATA frame for a send-only stream
+it has not opened MUST terminate the connection with error PROTOCOL_VIOLATION.
+
+Note that an endpoint may legally receive a MAX_STREAM_DATA frame on a
+bidirectional stream it has not opened.
 
 The frame is as follows:
 
@@ -138,9 +163,89 @@ The frame is as follows:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                        Stream ID (i)                        ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                     Min Stream Data (i)                     ...
+|                    Maximum Stream Data (i)                  ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                       Unsent Bytes (i)                      ...
+|                   Minimum Stream Offset (i)                 ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Exempt Stream Bytes (i)                  ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+~~~
+
+The fields in the MAX_STREAM_DATA frame are as follows:
+
+Stream ID:
+
+: The stream ID of the stream that is affected encoded as a variable-length
+  integer.
+
+Maximum Stream Data:
+
+: A variable-length integer indicating the maximum amount of data that can be
+  sent on the identified stream, in units of octets.
+
+Minimum Stream Offset:
+
+: *A variable-length integer indicating the minimum offset of the stream data
+  that can be sent (or re-transmitted) on the identified stream, in units of
+  octets.*
+
+Exempt Stream Bytes:
+
+: *A variable-length integer indicating the amount of data on the identified
+  stream exempt from connection flow control, in units of octets.*
+
+When counting data toward this limit, an endpoint accounts for the largest
+received offset of data that is sent or received on the stream.  Loss or
+reordering can mean that the largest received offset on a stream can be greater
+than the total size of data received on that stream.  Receiving STREAM frames
+might not increase the largest received offset.
+
+The data sent on a stream MUST NOT exceed the largest maximum stream data value
+advertised by the receiver.  An endpoint MUST terminate a connection with a
+FLOW_CONTROL_ERROR error if it receives more data than the largest maximum
+stream data that it has sent for the affected stream, unless this is a result of
+a change in the initial limits (see ((zerortt-parameters))).
+
+*If Minimum Stream Offset and Exempt Stream Bytes fields are present:*
+
+1. *Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.*
+
+2. *They update the stream's Min Stream Offset and Exempt Stream Bytes
+   upon receipt.*
+
+3. *If current send offset for the stream is less than the new Min Stream Offset,
+   the current send offset for the stream is set to be the new Min Stream Offset
+   upon receipt.*
+
+*The receiver MUST NOT reduce the Maximum Stream Data, Min Stream Offset, and
+Exempt Stream Bytes, but loss and reordering can cause MAX_STREAM_DATA frames to
+be received out of order.  If Maximum Stream Data field does not advance the
+maximum amount of data that can be sent on the stream, or Minimum Stream Offset
+field does not advance Min Stream Offset, or Exempt Stream Bytes field does not
+advance Exempt Stream Bytes, the corresponding stream parameter is not updated.
+An endpoint MUST terminate a connection with a MAX_STREAM_DATA_ERROR error, if
+one of the three fields is advancing its stream parameter, while another field
+is trying to retard its stream parameter.  An endpoint MUST terminate a
+connection with a MAX_STREAM_DATA_ERROR error, if Maximum Stream Data is less
+than Minimum Stream Offset.*
+
+
+MIN_STREAM_DATA Frame     {#frame-min-stream-data}
+---------------------
+
+The MIN_STREAM_DATA frame (type=0xXY) is used in flow control by the
+sender to inform the receiver of the minimum (re-)transmittable data
+offset on a stream.
+
+The frame is as follows:
+
+~~~
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Stream ID (i)                        ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                  Minimum Stream Offset (i)                  ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ~~~
 
@@ -148,115 +253,82 @@ The fields in the MIN_STREAM_DATA frame are as follows:
 
 Stream ID:
 
-: The stream ID of the stream that is affected encoded as a
-  variable-length integer.
+: The stream ID of the stream that is affected encoded as a variable-length
+  integer.
 
-Min Stream Data:
+Minimum Stream Offset:
 
-: A variable-length integer indicating the number of data octets
-  written to the stream (since the beginning of the stream) that have
-  expired and will not be retransmitted.
+: A variable-length integer indicating the new value for the stream's Min Stream
+  Offset ({{min-stream-offset}})
 
-Unsent Bytes:
+Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.
 
-: A variable-length integer indicating the number of data octets past
-  Min Stream Data that have expired but have never been sent and will
-  not be transmitted.  If Unsent Bytes field is absent, it is presumed
-  to be 0.
+The sender MUST NOT reduce the Minimum Stream Offset for a stream, but loss and
+reordering can cause MIN_STREAM_DATA frames to be received out of order.
+MIN_STREAM_DATA frames that do not increase the stream's Min Stream Offset MUST
+be ignored.
 
-Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.  If Unsent
-Bytes field is present in the frame, it MUST NOT be 0.
+Minimum Stream Offset can exceed the stream's maximum data offset.
 
-If Unsent Bytes field is present in the frame, it implies that all
-data previously sent to the receiver on the stream has expired.
-Hence, Min Stream Data is the current stream data offset of the
-stream.
+Sending MIN_STREAM_DATA frame does not change the stream's current send offset.
 
-Min Stream Offset ({{min-stream-offset}}) for Stream ID is determined
-by the formula:
-
-~~~
-  Min Stream Offset = Min Stream Data + Unsent Bytes
-~~~
-
-The Min Stream Offset for a stream MUST NOT be reduced by the sender
-in a subsequent MIN_STREAM_DATA frame, but loss and reordering can
-cause MIN_STREAM_DATA frames to be received out of order.
-MIN_STREAM_DATA frames that do not increase the stream's Min Stream
-Offset MUST be ignored.
-
-The sender MUST NOT send a STREAM frame with an Offset smaller then
-Min Stream Offset for the stream.
+Upon receipt, if the current receive offset for the stream is less the Minimum
+Stream Offset field, the receiver MUST advance the stream's Exempt Stream Bytes
+and the current receive offset by the difference between Minimum Stream Offset
+field and the current receive offset for this stream.
 
 
-Effect of MIN_STREAM_DATA on Flow Control   {#flow-control}
-=========================================
+Flow Control Update      {#flow-control}
+===================
 
-Specifying Unsent Bytes separately from Min Stream Data in
-MIN_STREAM_DATA frame avoids consuming stream and connection flow
-control credits for Unsent Bytes. Flow control credits protect
-receiver buffers, but Unsent Bytes correspond to bytes that will not
-need buffering. A sender that desires to expire a large number of
-bytes that have never been transmitted can do so in a single frame and
-without closing down the connection flow control window, because
-Unsent Bytes do not require flow control credits.
-
-The flow control has two goals:
-
-1. Allow the sender to notify the receiver about Unsent Bytes past Min
-   Stream Data, requesting that the receiver advance its stream flow
-   control windows to accommodate skipping Unsent Bytes. That needs to
-   be done without affecting connection flow control thereby blocking
-   the rest of the streams for an rtt (until the sender receives a
-   corresponding MAX_DATA frame, for example).
-
-2. Ensure that the connection flow control is unaffected by credits
-   designated for skipping Unsent Bytes (that do not need buffering on
-   the receiver) and hence cannot be used to send stream data on other
-   streams.
+Flow control changes are designed to make sure that a sender that
+desires to expire a large number of bytes that have never been
+transmitted can do so efficiently and without closing down the
+connection flow control window (thereby blocking other streams).  That
+must be done in a way that does not open up connection flow control
+window, allowing a different stream to use connection credits not
+designed for it.
 
 
-Receiver Flow Control    {#flow-control-receiver}
----------------------
+Connection Flow Control    {#flow-control-connection}
+-----------------------
 
-The value of the largest received offset of the stream is immediately
-advanced upon receipt of a MIN_STREAM_DATA frame, if it is smaller
-than Min Stream Data.
-
-If the updated value of Min Stream Offset (see {{min_stream_data}})
-exceeds the largest received offset of the stream, both the largest
-received offset and Exempt Stream Bytes of the stream are incremented
-by the difference between the largest received offset and Min Stream
-Offset.
+The connection flow control calculation is redefined as the sum of the
+current stream offsets minus the sum of Exempt Stream Bytes for all
+streams, including closed streams but excluding stream 0.
 
 
 Sender Flow Control    {#flow-control-sender}
 -------------------
 
-When an ACK frame is received for a packet containing a
-MIN_STREAM_OFFSET frame and the Current Min Stream Data of the stream is
-smaller than Min Stream Offset of the acknowledged MIN_STREAM_OFFSET
-frame, the Current Min Stream Data is advanced to the Min Stream Offset.
-(Note that this can only happen, when Unsent Bytes is non-zero in the
-acknowledged MIN_STREAM_OFFSET frame.)
+When an application notifies QUIC transport of the minimum
+retransmittable offset for a stream beyond the current Min Stream Data,
+sender SHOULD advance Min Stream Data for the stream. If there is any
+unacknowledged (including unsent) data at an offset less than the new
+Min Stream Data, the sender SHOULD transmit a MIN_STREAM_DATA frame
+({{frame-min-stream-data}}).
 
-If the Current Min Stream Data for at least one stream was advanced due to
-the receipt of a packet containing an ACK frame, and, after processing
-that entire packet, the sum of the Current Min Stream Data on all streams -
-including streams in terminal states but excluding stream 0 - exceeds
-MAX_DATA, the sender MUST terminate a connection with a
-QUIC_FLOW_CONTROL_SENT_TOO_MUCH_DATA error.
+If the last sent MIN_STREAM_DATA frame for a stream is declared lost,
+it MUST be retransmitted.
 
-It is possible that the Current Min Stream Data for at least one stream will
-be advanced past MAX_STREAM_DATA for that stream.  In that case, no
-data octets can be sent on that stream until a MAX_STREAM_DATA frame
-advancing the maximum offset is received.  Note that this does not
-prohibit using the Current Min Stream Data beyond MAX_STREAM_DATA in an
-RST_STREAM frame, a MIN_STREAM_DATA frame, or a STREAM frame with no
-data and FIN bit set.
+The sender behavior upon receipt of MAX_STREAM_DATA is described in
+{{frame-max-stream-data}}.  It is possible that MAX_STREAM_DATA will
+update current send stream offset and Exempt Stream Bytes for a
+"half-closed (local)" stream.
 
-It is possible that Current Min Stream Data will be advanced due to an ACK
-frame on a closed stream, if it was closed via RST_STREAM.
+
+Receiver Flow Control    {#flow-control-receiver}
+---------------------
+
+Upon receipt of a MIN_STREAM_DATA frame ({{frame-min-stream-data}}) that
+advances Min Stream Offset past the current receive offset for a stream,
+the receiver SHOULD send a MAX_STREAM_DATA frame
+({{frame-max-stream-data}}).
+
+If a STREAM-with-FIN or an RESET_STREAM frame is received with the final
+stream offset less than current receive offset for a stream, it is only
+an error, if the final receive offset for the stream is less than
+largest offset learned from a STREAM or RESET_STREAM frames.
 
 
 Sender Interface and Behavior    {#sender}
@@ -272,7 +344,7 @@ a message boundary.
 If all data between the current Min Stream Offset and the new Min
 Stream Offset has been acknowledged, no action is performed by the
 sender's QUIC transport.  Otherwise, if there is unacknowledged data,
-a MIN_STREAM_DATA frame is transmitted.
+a MIN_STREAM_DATA frame ({{frame-min-stream-data}}) is transmitted.
 
 An application may decide to conditionally expire messages based on
 the delivery status of prior messages.  For example, an application
@@ -290,28 +362,58 @@ Stream Offset ({{min-stream-offset}}).
 Receiver Interface and Behavior   {#receiver}
 ===============================
 
-The receiver SHOULD assume that none of the data up to Min Stream
-Offset ({{min-stream-offset}}) will be retransmitted.
+The receiver SHOULD assume that none of the data up to Min Stream Offset
+({{min-stream-offset}}) will be retransmitted.  A receiver MAY discard
+any stream data received for an offset smaller than Min Stream Offset.
 
 It is recommended that a QUIC library API provides a way for a
 receiver application to obtain the length of a gap corresponding to
 the expired data in addition to data octets that follow the gap.
 
-A receiver MAY discard any stream data received for an offset smaller
-than Min Stream Offset.
+It is also recommended that a QUIC library API provide a way for a
+receiver application to skip some octets past the current point in the
+stream.  When some of the skipped octets have not, yet, been received,
+the receiver SHOULD advance Min Stream Data for the stream. If the
+current receive offset for the stream is less the Minimum Stream Offset
+field, the receiver MUST advance the stream's Exempt Stream Bytes and
+the current receive offset by the difference between Minimum Stream
+Offset field and the current receive offset for this stream. If the
+stream's Min Stream Data has been advanced, the receiver SHOULD send a
+MAX_STREAM_DATA frame ({{frame-max-stream-data}}).
 
 
-Retransmission of MIN_STREAM_DATA    {#retransmission}
-=================================
+Retransmission      {#retransmission}
+==============
 
-The most recent MIN_STREAM_DATA frame for a stream MUST be
-retransmitted until the sender is certain that the receiver is not
-expecting retransmission of any expired data.  I.e. the frame MUST be
+Both MAX_STREAM_DATA and MIN_STREAM_DATA frames MUST be retransmitted if
+declared lost.
+
+Retransmission of MAX_STREAM_DATA    {#retransmission-max-stream-data}
+---------------------------------
+
+The most recent MIN_STREAM_DATA frame that contains Minimum Stream
+Offset and Exempt Stream Bytes MUST be retransmitted until the receiver
+is certain that the sender is not going to transmit any skipped data.
+I.e. the frame MUST be retransmitted until either the stream enters
+"half-closed (remote)" state, or all data between the largest Minimum
+Stream Offset in an acknowledged MAX_STREAM_DATA frame and the current
+Min Stream Offset has been received, or all data between the largest
+Minimum Stream Offset in a received MIN_STREAM_DATA frame and the
+current Min Stream Offset has been received.
+
+
+Retransmission of MIN_STREAM_DATA    {#retransmission-min-stream-data}
+---------------------------------
+
+The most recent MIN_STREAM_DATA frame for a stream MUST be retransmitted
+until the sender is certain that the receiver is not expecting
+retransmission of any expired data.  I.e. the frame MUST be
 retransmitted until either the stream enters "half-closed (local)"
-state or all data between the largest acknowledged Min Stream Offset
-and the current Min Stream Offset has been acknowledged.  Note that
-the later condition includes the trivial case of receiving an
-acknowledgment for the latest MIN_STREAM_DATA frame.
+state, or all data between the largest Minimum Stream Offset in an
+acknowledged MIN_STREAM_DATA frame and the current Min Stream Offset has
+been acknowledged, or all data between the largest Minimum Stream Offset
+in a received MAX_STREAM_DATA frame and the current Min Stream Offset
+has been acknowledged.
 
 
 IANA Considerations   {#iana}
