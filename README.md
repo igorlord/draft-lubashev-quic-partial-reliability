@@ -1,10 +1,10 @@
-#  Partial Reliability for QUIC
+#  Partially Reliable Streams for QUIC
 
-This is the working area for the individual Internet-Draft, " Partial Reliability for QUIC".
+This is the working area for the individual Internet-Draft, " Partially Reliable Streams for QUIC".
 
 * [Editor's Copy](https://igorlord.github.io/draft-lubashev-quic-partial-reliability/#go.draft-lubashev-quic-partial-reliability.html)
-* [Working Group Draft](https://tools.ietf.org/html/draft-lubashev-quic-partial-reliability)
-* [Compare Editor's Copy to Working Group Draft](https://igorlord.github.io/draft-lubashev-quic-partial-reliability/#go.draft-lubashev-quic-partial-reliability.diff)
+* [Individual Draft](https://tools.ietf.org/html/draft-lubashev-quic-partial-reliability)
+* [Compare Editor's Copy to Individual Draft](https://igorlord.github.io/draft-lubashev-quic-partial-reliability/#go.draft-lubashev-quic-partial-reliability.diff)
 
 ## Building the Draft
 
