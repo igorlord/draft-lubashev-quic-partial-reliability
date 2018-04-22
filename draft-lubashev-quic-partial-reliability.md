@@ -99,7 +99,7 @@ In this proposal, both the sender and the receiver are able to control
 expiration of messages in a stream.
 
 To facilitate flow control, this proposal introduces a new QUIC per-stream
-variable: Exempt Stream Bytes ({{exempt-stream-bytes}}).
+value: Exempt Stream Bytes ({{exempt-stream-bytes}}).
 
 
 Exempt Stream Bytes      {#exempt-stream-bytes}
@@ -134,11 +134,11 @@ EXPIRED_STREAM_DATA ({{frame-expired-stream-data}}) frames.
 
 ## MIN_STREAM_DATA Frame     {#frame-min-stream-data}
 
-The MIN_STREAM_DATA frame (type=0x??) is used in flow control to inform a sender
-of the maximum amount of data that can be sent on a stream (like MAX_STREAM_DATA
-frame) and to request an update to the minimum retransmittable offset
-({{offsets}}) and Exempt Stream Bytes value ({{exempt-stream-bytes}}) for this
-stream.
+The MIN_STREAM_DATA frame (type=0x??) is used in flow control by a receiver to
+inform a sender of the maximum amount of data that can be sent on a stream (like
+MAX_STREAM_DATA frame) and to request an update to the minimum retransmittable
+offset ({{offsets}}) and Exempt Stream Bytes value ({{exempt-stream-bytes}}) for
+this stream.
 
 The frame is as follows:
 
@@ -171,8 +171,8 @@ Maximum Stream Data:
 Minimum Stream Offset:
 
 : A variable-length integer indicating the minimum offset of the stream data
-  that the receiver is expected to receive on the identified stream, in units of
-  octets.
+  that the receiver is expecting to receive on the identified stream, in units
+  of octets.
 
 Exempt Stream Bytes:
 
@@ -224,8 +224,8 @@ smaller than Exempt Stream Bytes field.
 EXPIRED_STREAM_DATA Frame     {#frame-expired-stream-data}
 -------------------------
 
-The EXPIRED_STREAM_DATA frame (type=0x??) is used in flow control by the sender
-to inform the receiver of the minimum retransmittable offset ({{offsets}}) for a
+The EXPIRED_STREAM_DATA frame (type=0x??) is used in flow control by a sender to
+inform a receiver of the minimum retransmittable offset ({{offsets}}) for a
 stream.
 
 Sending EXPIRED_STREAM_DATA frame does not change the stream's current send
@@ -298,7 +298,8 @@ Connection Flow Control    {#flow-control-connection}
 -----------------------
 
 The connection flow control calculation is redefined to be the sum of the
-current stream offsets minus the sum of Exempt Stream Bytes
+current stream offsets (current send offset for the sender and the largest
+received offset for the receiver) minus the sum of Exempt Stream Bytes values
 ({{exempt-stream-bytes}}) for all streams, including closed streams but
 excluding stream 0.
 
@@ -407,6 +408,36 @@ Security Considerations   {#security}
 =======================
 
 This document has no new security considerations.
+
+
+Change Log
+==========
+
+Since version 00
+----------------
+
+- Fixed flow control to disallow other streams to use connection credits
+  designated for skipping expired bytes.
+
+
+Since version 01
+----------------
+
+- Added an ability by the receiver as well as the sender to control partial
+  reliability of QUIC streams.  ({{receiver-interface}})
+
+- Added Exempt Stream Bytes value and updated connection flow control
+  calculation to use Exempt Stream Bytes value.  ({{exempt-stream-bytes}})
+
+- Replaced the Min Stream Offset value with the existing values: "min
+  retransmittable offset" (for sender) and "current receive offset" (for
+  receiver).  ({{offsets}})
+
+- Changed MIN_STREAM_DATA frame to be a receiver-transmitted frame.
+  ({{frame-min-stream-data}})
+
+- Addded sender-transmitted EXPIRED_STREAM_DATA frame.
+  ({{frame-expired-stream-data}})
 
 
 Acknowledgments
