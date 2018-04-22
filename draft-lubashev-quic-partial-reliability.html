@@ -295,8 +295,11 @@ ul.toc li {
 <link href="#rfc.section.7.2" rel="Chapter" title="7.2 Retransmission of EXPIRED_STREAM_DATA">
 <link href="#rfc.section.8" rel="Chapter" title="8 IANA Considerations">
 <link href="#rfc.section.9" rel="Chapter" title="9 Security Considerations">
-<link href="#rfc.section.10" rel="Chapter" title="10 Acknowledgments">
-<link href="#rfc.references" rel="Chapter" title="11 Normative References">
+<link href="#rfc.section.10" rel="Chapter" title="10 Change Log">
+<link href="#rfc.section.10.1" rel="Chapter" title="10.1 Since version 00">
+<link href="#rfc.section.10.2" rel="Chapter" title="10.2 Since version 01">
+<link href="#rfc.section.11" rel="Chapter" title="11 Acknowledgments">
+<link href="#rfc.references" rel="Chapter" title="12 Normative References">
 <link href="#rfc.authors" rel="Chapter">
 
 
@@ -305,7 +308,7 @@ ul.toc li {
 
   <meta name="dct.creator" content="Lubashev, I." />
   <meta name="dct.identifier" content="urn:ietf:id:draft-lubashev-quic-partial-reliability-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2018-21" />
+  <meta name="dct.issued" scheme="ISO8601" content="2018-22" />
   <meta name="dct.abstract" content="This memo introduces MIN_STREAM_DATA and EXPIRED_STREAM_DATA frames to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision. The MIN_STREAM_DATA frame allows a receiver to express its disinterest in older parts of a stream.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
   <meta name="description" content="This memo introduces MIN_STREAM_DATA and EXPIRED_STREAM_DATA frames to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision. The MIN_STREAM_DATA frame allows a receiver to express its disinterest in older parts of a stream.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
 
@@ -326,10 +329,10 @@ ul.toc li {
 </tr>
 <tr>
 <td class="left">Intended status: Informational</td>
-<td class="right">April 21, 2018</td>
+<td class="right">April 22, 2018</td>
 </tr>
 <tr>
-<td class="left">Expires: October 23, 2018</td>
+<td class="left">Expires: October 24, 2018</td>
 <td class="right"></td>
 </tr>
 
@@ -346,7 +349,7 @@ ul.toc li {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at https://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on October 23, 2018.</p>
+<p>This Internet-Draft will expire on October 24, 2018.</p>
 <h1 id="rfc.copyrightnotice"><a href="#rfc.copyrightnotice">Copyright Notice</a></h1>
 <p>Copyright (c) 2018 IETF Trust and the persons identified as the document authors.  All rights reserved.</p>
 <p>This document is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents (https://trustee.ietf.org/license-info) in effect on the date of publication of this document.  Please review these documents carefully, as they describe your rights and restrictions with respect to this document.  Code Components extracted from this document must include Simplified BSD License text as described in Section 4.e of the Trust Legal Provisions and are provided without warranty as described in the Simplified BSD License.</p>
@@ -394,9 +397,15 @@ ul.toc li {
 </li>
 <li>9.   <a href="#rfc.section.9">Security Considerations</a>
 </li>
-<li>10.   <a href="#rfc.section.10">Acknowledgments</a>
+<li>10.   <a href="#rfc.section.10">Change Log</a>
 </li>
-<li>11.   <a href="#rfc.references">Normative References</a>
+<ul><li>10.1.   <a href="#rfc.section.10.1">Since version 00</a>
+</li>
+<li>10.2.   <a href="#rfc.section.10.2">Since version 01</a>
+</li>
+</ul><li>11.   <a href="#rfc.section.11">Acknowledgments</a>
+</li>
+<li>12.   <a href="#rfc.references">Normative References</a>
 </li>
 <li><a href="#rfc.authors">Author's Address</a>
 </li>
@@ -420,7 +429,7 @@ ul.toc li {
 <p id="rfc.section.3.p.1">It is possible to provide partial reliability without any changes to QUIC transport by using QUIC streams, encoding one message per QUIC stream.  When a message expires, the sender can reset the stream, causing RST_STREAM frame to be transmitted, unless all data in the stream has already been fully acknowledged.  Likewise, the receiver can send STOP_SENDING frame to indicate its disinterest in the message.  The problem with this approach is that messages transmitted by the application typically belong to a message stream, and applications may need to support multiple concurrent message streams.  Hence, a message-per-stream approach requires each message to contain an extra header portion to associate the message with a logical application stream.  In case of short messages, this approach introduces a significant overhead due to STREAM frames and message headers. It also places the burden on the application to reorder data arriving on multiple QUIC streams.  Furthermore, splitting each application stream into multiple QUIC streams renders QUIC&#8217;s per-stream flow control ineffective and requires an application to build its own.</p>
 <p id="rfc.section.3.p.2">An alternative is the proposed single-stream mechanism that keeps messages arriving in order on a single stream.</p>
 <p id="rfc.section.3.p.3">In this proposal, both the sender and the receiver are able to control expiration of messages in a stream.</p>
-<p id="rfc.section.3.p.4">To facilitate flow control, this proposal introduces a new QUIC per-stream variable: Exempt Stream Bytes (<a href="#exempt-stream-bytes" class="xref">Section 3.1</a>).</p>
+<p id="rfc.section.3.p.4">To facilitate flow control, this proposal introduces a new QUIC per-stream value: Exempt Stream Bytes (<a href="#exempt-stream-bytes" class="xref">Section 3.1</a>).</p>
 <h1 id="rfc.section.3.1">
 <a href="#rfc.section.3.1">3.1.</a> <a href="#exempt-stream-bytes" id="exempt-stream-bytes">Exempt Stream Bytes</a>
 </h1>
@@ -437,7 +446,7 @@ ul.toc li {
 <h1 id="rfc.section.4.1">
 <a href="#rfc.section.4.1">4.1.</a> <a href="#frame-min-stream-data" id="frame-min-stream-data">MIN_STREAM_DATA Frame</a>
 </h1>
-<p id="rfc.section.4.1.p.1">The MIN_STREAM_DATA frame (type=0x??) is used in flow control to inform a sender of the maximum amount of data that can be sent on a stream (like MAX_STREAM_DATA frame) and to request an update to the minimum retransmittable offset (<a href="#offsets" class="xref">Section 3.2</a>) and Exempt Stream Bytes value (<a href="#exempt-stream-bytes" class="xref">Section 3.1</a>) for this stream.</p>
+<p id="rfc.section.4.1.p.1">The MIN_STREAM_DATA frame (type=0x??) is used in flow control by a receiver to inform a sender of the maximum amount of data that can be sent on a stream (like MAX_STREAM_DATA frame) and to request an update to the minimum retransmittable offset (<a href="#offsets" class="xref">Section 3.2</a>) and Exempt Stream Bytes value (<a href="#exempt-stream-bytes" class="xref">Section 3.1</a>) for this stream.</p>
 <p id="rfc.section.4.1.p.2">The frame is as follows:</p>
 <pre>
  0                   1                   2                   3
@@ -461,7 +470,7 @@ ul.toc li {
 <dt>Maximum Stream Data:</dt>
 <dd style="margin-left: 8">A variable-length integer indicating the maximum amount of data that can be sent on the identified stream, in units of octets.</dd>
 <dt>Minimum Stream Offset:</dt>
-<dd style="margin-left: 8">A variable-length integer indicating the minimum offset of the stream data that the receiver is expected to receive on the identified stream, in units of octets.</dd>
+<dd style="margin-left: 8">A variable-length integer indicating the minimum offset of the stream data that the receiver is expecting to receive on the identified stream, in units of octets.</dd>
 <dt>Exempt Stream Bytes:</dt>
 <dd style="margin-left: 8">A variable-length integer indicating the amount of data on the identified stream exempt from connection flow control, in units of octets.</dd>
 </dl>
@@ -478,7 +487,7 @@ ul.toc li {
 <h1 id="rfc.section.4.2">
 <a href="#rfc.section.4.2">4.2.</a> <a href="#frame-expired-stream-data" id="frame-expired-stream-data">EXPIRED_STREAM_DATA Frame</a>
 </h1>
-<p id="rfc.section.4.2.p.1">The EXPIRED_STREAM_DATA frame (type=0x??) is used in flow control by the sender to inform the receiver of the minimum retransmittable offset (<a href="#offsets" class="xref">Section 3.2</a>) for a stream.</p>
+<p id="rfc.section.4.2.p.1">The EXPIRED_STREAM_DATA frame (type=0x??) is used in flow control by a sender to inform a receiver of the minimum retransmittable offset (<a href="#offsets" class="xref">Section 3.2</a>) for a stream.</p>
 <p id="rfc.section.4.2.p.2">Sending EXPIRED_STREAM_DATA frame does not change the stream&#8217;s current send offset.</p>
 <p id="rfc.section.4.2.p.3">The frame is as follows:</p>
 <pre>
@@ -513,7 +522,7 @@ ul.toc li {
 <h1 id="rfc.section.5.1">
 <a href="#rfc.section.5.1">5.1.</a> <a href="#flow-control-connection" id="flow-control-connection">Connection Flow Control</a>
 </h1>
-<p id="rfc.section.5.1.p.1">The connection flow control calculation is redefined to be the sum of the current stream offsets minus the sum of Exempt Stream Bytes (<a href="#exempt-stream-bytes" class="xref">Section 3.1</a>) for all streams, including closed streams but excluding stream 0.</p>
+<p id="rfc.section.5.1.p.1">The connection flow control calculation is redefined to be the sum of the current stream offsets (current send offset for the sender and the largest received offset for the receiver) minus the sum of Exempt Stream Bytes values (<a href="#exempt-stream-bytes" class="xref">Section 3.1</a>) for all streams, including closed streams but excluding stream 0.</p>
 <h1 id="rfc.section.5.2">
 <a href="#rfc.section.5.2">5.2.</a> <a href="#stream-final-offset" id="stream-final-offset">Stream Final Offset</a>
 </h1>
@@ -555,11 +564,32 @@ ul.toc li {
 </h1>
 <p id="rfc.section.9.p.1">This document has no new security considerations.</p>
 <h1 id="rfc.section.10">
-<a href="#rfc.section.10">10.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
+<a href="#rfc.section.10">10.</a> <a href="#change-log" id="change-log">Change Log</a>
 </h1>
-<p id="rfc.section.10.p.1">Many thanks to Mike Bishop and Ian Swett for their feedback on flow control issues.  Thus draft could not happen without Subodh Iyengar&#8217;s ideas for receiver-controlled MIN_STREAM_DATA.  Kudos to the QUIC working group for a mountain of feedback on this draft and for diligently plowing through hard problems, making thousands of big and small decisions, to make the Internet better for everyone.</p>
+<h1 id="rfc.section.10.1">
+<a href="#rfc.section.10.1">10.1.</a> <a href="#since-version-00" id="since-version-00">Since version 00</a>
+</h1>
+<p></p>
+
+<ul><li>Fixed flow control to disallow other streams to use connection credits designated for skipping expired bytes.</li></ul>
+<h1 id="rfc.section.10.2">
+<a href="#rfc.section.10.2">10.2.</a> <a href="#since-version-01" id="since-version-01">Since version 01</a>
+</h1>
+<p></p>
+
+<ul>
+<li>Added an ability by the receiver as well as the sender to control partial reliability of QUIC streams.  (<a href="#receiver-interface" class="xref">Section 6.2</a>)</li>
+<li>Added Exempt Stream Bytes value and updated connection flow control calculation to use Exempt Stream Bytes value.  (<a href="#exempt-stream-bytes" class="xref">Section 3.1</a>)</li>
+<li>Replaced the Min Stream Offset value with the existing values: &#8220;min retransmittable offset&#8221; (for sender) and &#8220;current receive offset&#8221; (for receiver).  (<a href="#offsets" class="xref">Section 3.2</a>)</li>
+<li>Changed MIN_STREAM_DATA frame to be a receiver-transmitted frame.  (<a href="#frame-min-stream-data" class="xref">Section 4.1</a>)</li>
+<li>Addded sender-transmitted EXPIRED_STREAM_DATA frame.  (<a href="#frame-expired-stream-data" class="xref">Section 4.2</a>)</li>
+</ul>
+<h1 id="rfc.section.11">
+<a href="#rfc.section.11">11.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
+</h1>
+<p id="rfc.section.11.p.1">Many thanks to Mike Bishop and Ian Swett for their feedback on flow control issues.  Thus draft could not happen without Subodh Iyengar&#8217;s ideas for receiver-controlled MIN_STREAM_DATA.  Kudos to the QUIC working group for a mountain of feedback on this draft and for diligently plowing through hard problems, making thousands of big and small decisions, to make the Internet better for everyone.</p>
 <h1 id="rfc.references">
-<a href="#rfc.references">11.</a> Normative References</h1>
+<a href="#rfc.references">12.</a> Normative References</h1>
 <table><tbody>
 <tr>
 <td class="reference"><b id="I-D.ietf-quic-applicability">[I-D.ietf-quic-applicability]</b></td>
