@@ -60,43 +60,56 @@ Introduction     {#introduction}
 ============
 
 Some applications, especially applications with near real-time requirements,
-need a partially reliable transport.  These applications typically communicate
-data in application-specific messages that are serialized over QUIC streams.
-Applications desire partially reliable transport when their messages expire and
-lose their usefulness due to later events (time passing, newer messages, etc).
+need transport that supports partially reliable streams -- streams that deliver
+bytes in order but allow for applicaiton-controlled gaps.  These applications
+communicate using application-specific messages that are serialized over QUIC
+streams.  Applications desire partially reliable streams when their messages
+expire and lose their usefulness due to later events (time passing, newer
+messages, etc).
+
+Examples of applications that can benefit from partially reliable streams are
+real time video (all prior data is to be expired when a new key frame is
+available) and data replication (expire previous updates, when a new update
+overwrites the data).
 
 The content of this draft is intended for {{!I-D.ietf-quic-transport}},
 {{!I-D.ietf-quic-recovery}} and, {{!I-D.ietf-quic-applicability}} as a QUIC
 extension and/or QUIC Version 2.
 
-The key to partial reliability is notifying the peer about data that will not or
-should not be retransmitted and managing flow control for the connection.
+Stream-per-Message Alternative
+------------------------------
+
+It is possible to avoid the need for partially reliable streams by encoding one
+message per QUIC stream.  When a message expires, the sender can reset the
+stream, causing RST_STREAM frame to be transmitted, unless all data in the
+stream has already been fully acknowledged.  Likewise, the receiver can send
+STOP_SENDING frame to indicate its disinterest in the message.  The problem with
+this approach is that messages transmitted by the application typically belong
+to a message stream, and applications may need to support multiple concurrent
+message streams.  Hence, a message-per-stream approach requires each message to
+contain an extra header portion to associate the message with a logical
+application stream.  In case of short messages, this approach introduces a
+significant overhead due to STREAM frames and message headers. It also places
+the burden on the application to reorder data arriving on multiple QUIC streams.
+Furthermore, splitting each application stream into multiple QUIC streams
+renders QUIC's per-stream flow control ineffective and requires an application
+to build its own.
 
 
 Partially Reliable Streams
-==========================
+--------------------------
 
-It is possible to provide partial reliability without any changes to QUIC
-transport by using QUIC streams, encoding one message per QUIC stream.  When a
-message expires, the sender can reset the stream, causing RST_STREAM frame to be
-transmitted, unless all data in the stream has already been fully acknowledged.
-Likewise, the receiver can send STOP_SENDING frame to indicate its disinterest
-in the message.  The problem with this approach is that messages transmitted by
-the application typically belong to a message stream, and applications may need
-to support multiple concurrent message streams.  Hence, a message-per-stream
-approach requires each message to contain an extra header portion to associate
-the message with a logical application stream.  In case of short messages, this
-approach introduces a significant overhead due to STREAM frames and message
-headers. It also places the burden on the application to reorder data arriving
-on multiple QUIC streams.  Furthermore, splitting each application stream into
-multiple QUIC streams renders QUIC's per-stream flow control ineffective and
-requires an application to build its own.
+The proposed single-stream mechanism keeps aplication messages arriving in order
+on a single stream, while allowing the application to control message
+expiration.  In this proposal, both the sender and the receiver are able to
+control expiration of messages in a stream.
 
-An alternative is the proposed single-stream mechanism that keeps messages
-arriving in order on a single stream.
+A feature of the proposed protocol is that data is seen by the receiver
+application at the same stream offsets used by the sender application.
 
-In this proposal, both the sender and the receiver are able to control
-expiration of messages in a stream.
+The key to partially reliabile streams is notifying the peer about data that
+will not or should not be retransmitted and managing flow control for the
+connection.
 
 To facilitate flow control, this proposal introduces a new QUIC per-stream
 value: Exempt Stream Bytes ({{exempt-stream-bytes}}).
@@ -114,10 +127,10 @@ Minimum retransmittable offset and current receive offset    {#offsets}
 ---------------------------------------------------------
 
 For fully reliable streams, the smallest unacknowledged data offset is treated
-by the sender to be the minimum (re-)transmittable offset.  Likewise, the
-current receive offset for a stream is the smallest data offset that has not
-been received by the receiver.  Note that due to loss and reordering, the
-current receive offset may be smaller than the largest received offset.
+by the sender to be the minimum retransmittable offset.  Likewise, the current
+receive offset for a stream is the smallest data offset that has not been
+received by the receiver.  Note that due to loss and reordering, the current
+receive offset may be smaller than the largest received offset.
 
 Partially reliable streams allow the sender to advance its minimum
 retransmittable offset and notify the receiver to advance its current receive
@@ -134,11 +147,21 @@ EXPIRED_STREAM_DATA ({{frame-expired-stream-data}}) frames.
 
 ## MIN_STREAM_DATA Frame     {#frame-min-stream-data}
 
-The MIN_STREAM_DATA frame (type=0x??) is used in flow control by a receiver to
-inform a sender of the maximum amount of data that can be sent on a stream (like
-MAX_STREAM_DATA frame) and to request an update to the minimum retransmittable
-offset ({{offsets}}) and Exempt Stream Bytes value ({{exempt-stream-bytes}}) for
-this stream.
+The MIN_STREAM_DATA frame (type=0x??) is used by a receiver to inform a sender
+of the maximum amount of data that can be sent on a stream (like MAX_STREAM_DATA
+frame) and to request an update to the minimum retransmittable offset
+({{offsets}}) and Exempt Stream Bytes value ({{exempt-stream-bytes}}) for this
+stream.
+
+The MIN_STREAM_DATA frame includes MAX_STREAM_DATA frame functionality solely
+for encoding efficiency, since any increase in the minimum offset of the stream
+is likey to come with a corresponding increase in stream flow control window.
+
+The MIN_STREAM_DATA frame includes Minimum Stream Offset and Exempt Stream Bytes
+fields in the same frame, since both affect connection flow control. It would
+significantly complicate connection flow control accounting, if both fields were
+not updated at the same time.
+
 
 The frame is as follows:
 
@@ -189,7 +212,7 @@ of data that can be sent on the stream, the minimum retransmittable offset, and
 the Exempt Stream Bytes value to the corresponding values of Maximum Stream
 Data, Minimum Stream Offset, and Exempt Stream Bytes fields.
 
-If the current send offset becomes smaller than the minimum retransmittable
+If the minimum retransmittable offset becomes larger than the current send
 offset for a stream, the current send offset is advanced to the minimum
 retransmittable offset.
 
@@ -224,9 +247,8 @@ smaller than Exempt Stream Bytes field.
 EXPIRED_STREAM_DATA Frame     {#frame-expired-stream-data}
 -------------------------
 
-The EXPIRED_STREAM_DATA frame (type=0x??) is used in flow control by a sender to
-inform a receiver of the minimum retransmittable offset ({{offsets}}) for a
-stream.
+The EXPIRED_STREAM_DATA frame (type=0x??) is used by a sender to inform a
+receiver of the minimum retransmittable offset ({{offsets}}) for a stream.
 
 Sending EXPIRED_STREAM_DATA frame does not change the stream's current send
 offset.
@@ -266,14 +288,11 @@ loss and reordering can cause EXPIRED_STREAM_DATA frames to be received out of
 order.  EXPIRED_STREAM_DATA frames that do not advance the current receive
 offset for the stream MUST be ignored.
 
-If the largest received offset for the stream becomes smaller than the current
-receive offset, the receiver MUST advance the stream's Exempt Stream Bytes value
+If the current receive offset becomes larger than the largest received offset
+for the stream, the receiver MUST advance the stream's Exempt Stream Bytes value
 by the difference between the current and the largest received offsets.  The
-largest received offset is then set to match the current receive offset.
-
-Upon receipt of an EXPIRED_STREAM_DATA frame that advances the Exempt Stream
-Bytes value for the stream, the receiver SHOULD send a MIN_STREAM_DATA frame
-({{frame-min-stream-data}}).
+largest received offset is then set to match the current receive offset, and the
+receiver SHOULD send a MIN_STREAM_DATA frame ({{frame-min-stream-data}}).
 
 Note that receipt of an EXPIRED_STREAM_DATA frame may cause the current receive
 offset (and hence the largest received offset) to exceed a previously advertised
@@ -344,17 +363,20 @@ rate before expiring a partially-delivered message just because there is a newer
 message to deliver.  That is, if the rate of data the application wishes to
 write exceeds the network's throughput, the application may want to ensure that
 at least some messages are delivered in their entirety.  To support this use
-case, it is recommended that a QUIC library API provides a way for the sender to
-monitor the smallest unacknowledged stream offset greater than the current
-minimum retransmittable offset.
+case, it is recommended that a QUIC library API provides a way for the sender
+application to monitor the change in minimum retransmittable offset due to
+receipt of ACKs.
 
 
 Receiver Interface and Behavior   {#receiver-interface}
 -------------------------------
 
-The receiver SHOULD assume that none of the data before the new current receive
-offset ({{offsets}}) will be retransmitted.  A receiver MAY discard any stream
-data received for an offset smaller than the new current receive offset.
+Upon receipt of an EXPIRED_STREAM_DATA frame ({{frame-expired-stream-data}}),
+the receiver SHOULD assume that none of the data before the new current receive
+offset ({{offsets}}) will be retransmitted.  A receiver SHOULD discard any
+stream data received for an offset smaller than the new current receive offset.
+Discarding such data ensures that when the application observes a gap in the
+data stream, what follows the gap is a beginning of a new message.
 
 It is recommended that a QUIC library API provides a way for a receiver
 application to obtain the length of a gap corresponding to the expired data in
@@ -363,10 +385,10 @@ addition to data octets that follow the gap.
 It is recommended that a QUIC library API provide a way for a receiver
 application to skip data octets past the current point in the stream.  Such a
 request from the application should be treated by QUIC as a receipt of an
-EXPIRED_STREAM_DATA frame ({{frame-expired-stream-data}}) with the Minimum
-Stream Offset field set of the offset to which the application wished to skip.
-If the current receive offset is advanced as a result of this application
-request, QUIC should transmit a MIN_STREAM_DATA frame.
+EXPIRED_STREAM_DATA frame with the Minimum Stream Offset field set of the offset
+to which the application wished to skip.  If the current receive offset is
+advanced as a result of this application request, QUIC library SHOULD transmit a
+MIN_STREAM_DATA frame.
 
 
 Retransmission      {#retransmission}
@@ -443,8 +465,8 @@ Since version 01
 Acknowledgments
 ===============
 
-Many thanks to Mike Bishop and Ian Swett for their feedback on flow control
-issues.  Thus draft could not happen without Subodh Iyengar's ideas for
+Many thanks to Mike Bishop and Ian Swett for their review and feedback on flow
+control issues.  Thus draft would not happen without Subodh Iyengar's ideas for
 receiver-controlled MIN_STREAM_DATA.  Kudos to the QUIC working group for a
 mountain of feedback on this draft and for diligently plowing through hard
 problems, making thousands of big and small decisions, to make the Internet
