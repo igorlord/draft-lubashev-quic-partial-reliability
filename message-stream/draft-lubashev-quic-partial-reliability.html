@@ -284,16 +284,16 @@ ul.toc li {
 <link href="#rfc.section.3" rel="Chapter" title="3 EXPIRED_STREAM_DATA Frame">
 <link href="#rfc.section.4" rel="Chapter" title="4 Sender Interface and Behavior">
 <link href="#rfc.section.4.1" rel="Chapter" title="4.1 Translating Application Offsets to QUIC Offsets">
-<link href="#rfc.section.4.2" rel="Chapter" title="4.2 Receiver Interface and Behavior">
-<link href="#rfc.section.5" rel="Chapter" title="5 Retransmission of EXPIRED_STREAM_DATA">
-<link href="#rfc.section.6" rel="Chapter" title="6 IANA Considerations">
-<link href="#rfc.section.7" rel="Chapter" title="7 Security Considerations">
-<link href="#rfc.section.8" rel="Chapter" title="8 Change Log">
-<link href="#rfc.section.8.1" rel="Chapter" title="8.1 Since version 00">
-<link href="#rfc.section.8.2" rel="Chapter" title="8.2 Since version 01">
-<link href="#rfc.section.8.3" rel="Chapter" title="8.3 Since version 01">
-<link href="#rfc.section.9" rel="Chapter" title="9 Acknowledgments">
-<link href="#rfc.references" rel="Chapter" title="10 Normative References">
+<link href="#rfc.section.5" rel="Chapter" title="5 Receiver Interface and Behavior">
+<link href="#rfc.section.6" rel="Chapter" title="6 Retransmission of EXPIRED_STREAM_DATA">
+<link href="#rfc.section.7" rel="Chapter" title="7 IANA Considerations">
+<link href="#rfc.section.8" rel="Chapter" title="8 Security Considerations">
+<link href="#rfc.section.9" rel="Chapter" title="9 Change Log">
+<link href="#rfc.section.9.1" rel="Chapter" title="9.1 Since version 00">
+<link href="#rfc.section.9.2" rel="Chapter" title="9.2 Since version 01">
+<link href="#rfc.section.9.3" rel="Chapter" title="9.3 Since version 01">
+<link href="#rfc.section.10" rel="Chapter" title="10 Acknowledgments">
+<link href="#rfc.references" rel="Chapter" title="11 Normative References">
 <link href="#rfc.authors" rel="Chapter">
 
 
@@ -369,25 +369,25 @@ ul.toc li {
 </li>
 <ul><li>4.1.   <a href="#rfc.section.4.1">Translating Application Offsets to QUIC Offsets</a>
 </li>
-<li>4.2.   <a href="#rfc.section.4.2">Receiver Interface and Behavior</a>
+</ul><li>5.   <a href="#rfc.section.5">Receiver Interface and Behavior</a>
 </li>
-</ul><li>5.   <a href="#rfc.section.5">Retransmission of EXPIRED_STREAM_DATA</a>
+<li>6.   <a href="#rfc.section.6">Retransmission of EXPIRED_STREAM_DATA</a>
 </li>
-<li>6.   <a href="#rfc.section.6">IANA Considerations</a>
+<li>7.   <a href="#rfc.section.7">IANA Considerations</a>
 </li>
-<li>7.   <a href="#rfc.section.7">Security Considerations</a>
+<li>8.   <a href="#rfc.section.8">Security Considerations</a>
 </li>
-<li>8.   <a href="#rfc.section.8">Change Log</a>
+<li>9.   <a href="#rfc.section.9">Change Log</a>
 </li>
-<ul><li>8.1.   <a href="#rfc.section.8.1">Since version 00</a>
+<ul><li>9.1.   <a href="#rfc.section.9.1">Since version 00</a>
 </li>
-<li>8.2.   <a href="#rfc.section.8.2">Since version 01</a>
+<li>9.2.   <a href="#rfc.section.9.2">Since version 01</a>
 </li>
-<li>8.3.   <a href="#rfc.section.8.3">Since version 01</a>
+<li>9.3.   <a href="#rfc.section.9.3">Since version 01</a>
 </li>
-</ul><li>9.   <a href="#rfc.section.9">Acknowledgments</a>
+</ul><li>10.   <a href="#rfc.section.10">Acknowledgments</a>
 </li>
-<li>10.   <a href="#rfc.references">Normative References</a>
+<li>11.   <a href="#rfc.references">Normative References</a>
 </li>
 <li><a href="#rfc.authors">Author's Address</a>
 </li>
@@ -418,14 +418,15 @@ ul.toc li {
 <h1 id="rfc.section.2.3">
 <a href="#rfc.section.2.3">2.3.</a> <a href="#offsets" id="offsets">Minimum retransmittable offset and current receive offset</a>
 </h1>
-<p id="rfc.section.2.3.p.1">For fully reliable streams, the smallest unacknowledged data offset is treated by the sender to be the minimum retransmittable offset.  Likewise, the current receive offset for a stream is the smallest data offset that has not been received by the receiver.  Note that due to loss and reordering, the current receive offset may be smaller than the largest received offset.</p>
+<p id="rfc.section.2.3.p.1">For fully reliable streams, the smallest unacknowledged data offset is treated by the sender to be the minimum retransmittable offset.  Likewise, the current receive offset for a stream is the smallest data offset that has not been received by the receiver.  Due to loss and reordering, the current receive offset may be smaller than the largest received offset.</p>
 <p id="rfc.section.2.3.p.2">Partially reliable streams allow the sender to advance its minimum retransmittable offset and notify the receiver to advance its current receive offset.</p>
 <h1 id="rfc.section.3">
 <a href="#rfc.section.3">3.</a> <a href="#frame-expired-stream-data" id="frame-expired-stream-data">EXPIRED_STREAM_DATA Frame</a>
 </h1>
 <p id="rfc.section.3.p.1">The EXPIRED_STREAM_DATA frame (type=0x??) is used by a sender to inform a receiver of the minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) for a stream.</p>
-<p id="rfc.section.3.p.2">Sending EXPIRED_STREAM_DATA frame may advance the stream&#8217;s current send offset, which MUST satisfy stream and connection flow control.</p>
-<p id="rfc.section.3.p.3">The frame is as follows:</p>
+<p id="rfc.section.3.p.2">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TODO: Reconcile this with sender accounting !!!!!!! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</p>
+<p id="rfc.section.3.p.3">Sending EXPIRED_STREAM_DATA frame may advance the stream&#8217;s current send offset, which MUST satisfy stream and connection flow control.</p>
+<p id="rfc.section.3.p.4">The frame is as follows:</p>
 <pre>
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -435,7 +436,7 @@ ul.toc li {
 |                  Minimum Stream Offset (i)                  ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 </pre>
-<p id="rfc.section.3.p.4">The fields in the EXPIRED_STREAM_DATA frame are as follows:</p>
+<p id="rfc.section.3.p.5">The fields in the EXPIRED_STREAM_DATA frame are as follows:</p>
 <p></p>
 
 <dl>
@@ -444,11 +445,11 @@ ul.toc li {
 <dt>Minimum Stream Offset:</dt>
 <dd style="margin-left: 8">A variable-length integer indicating the minimum offset of the stream data that will sent (or re-transmitted) on the identified stream, in units of octets.</dd>
 </dl>
-<p id="rfc.section.3.p.6">Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.</p>
-<p id="rfc.section.3.p.7">Upon receipt of an EXPIRED_STREAM_DATA frame, the receiver advances the current receive offset for the stream to be Minimum Stream Offset value.</p>
-<p id="rfc.section.3.p.8">If the current receive offset becomes larger than the largest received offset for the stream, the receiver MUST advance the stream&#8217;s largest received offset to be the current receive offset.</p>
-<p id="rfc.section.3.p.9">The sender MUST NOT reduce the minimum retransmittable offset for a stream, but loss and reordering can cause EXPIRED_STREAM_DATA frames to be received out of order.  EXPIRED_STREAM_DATA frames that do not advance the current receive offset for the stream MUST be ignored.</p>
-<p id="rfc.section.3.p.10">An endpoint that receives an EXPIRED_STREAM_DATA frame for a send-only stream MUST terminate the connection with error PROTOCOL_VIOLATION.</p>
+<p id="rfc.section.3.p.7">Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.</p>
+<p id="rfc.section.3.p.8">Upon receipt of an EXPIRED_STREAM_DATA frame, the receiver advances the current receive offset for the stream to be Minimum Stream Offset value.</p>
+<p id="rfc.section.3.p.9">If the current receive offset becomes larger than the largest received offset for the stream, the receiver MUST advance the stream&#8217;s largest received offset to be the current receive offset.</p>
+<p id="rfc.section.3.p.10">The sender MUST NOT reduce the minimum retransmittable offset for a stream, but loss and reordering can cause EXPIRED_STREAM_DATA frames to be received out of order.  EXPIRED_STREAM_DATA frames that do not advance the current receive offset for the stream MUST be ignored.</p>
+<p id="rfc.section.3.p.11">An endpoint that receives an EXPIRED_STREAM_DATA frame for a send-only stream MUST terminate the connection with error PROTOCOL_VIOLATION.</p>
 <h1 id="rfc.section.4">
 <a href="#rfc.section.4">4.</a> <a href="#sender-interface" id="sender-interface">Sender Interface and Behavior</a>
 </h1>
@@ -489,34 +490,34 @@ ul.toc li {
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 </pre>
 <p id="rfc.section.4.1.p.5">Since the QUIC library and the application need to communicate data offsets (for example, for the purpose of updating the minimum retransmittable stream offset), the QUIC library needs to translate appliction offsets to QUIC offsets.  Depending on the richness of the APIs exposed to the application, a single difference between the current application and QUIC offsets is likely to be sufficient.</p>
-<h1 id="rfc.section.4.2">
-<a href="#rfc.section.4.2">4.2.</a> <a href="#receiver-interface" id="receiver-interface">Receiver Interface and Behavior</a>
-</h1>
-<p id="rfc.section.4.2.p.1">Upon receipt of an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>), the receiver SHOULD assume that none of the data before the new current receive offset (<a href="#offsets" class="xref">Section 2.3</a>) will be retransmitted.  A receiver SHOULD discard any stream data received for an offset smaller than the new current receive offset.  Discarding such data ensures that when the application observes a gap in the data stream, what follows the gap is a beginning of a new message.</p>
-<p id="rfc.section.4.2.p.2">It is recommended that a QUIC library API provides a way for a receiver application to learn of the presence of a gap in the data stream, indicating that the data that follows the gap is a beginning of a new message.</p>
 <h1 id="rfc.section.5">
-<a href="#rfc.section.5">5.</a> <a href="#retransmission" id="retransmission">Retransmission of EXPIRED_STREAM_DATA</a>
+<a href="#rfc.section.5">5.</a> <a href="#receiver-interface" id="receiver-interface">Receiver Interface and Behavior</a>
 </h1>
-<p id="rfc.section.5.p.1">The most recent EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>) for a stream MUST be retransmitted if it is declared lost, until the sender is certain that the receiver is not expecting retransmission of any expired data.  I.e. the frame MUST be retransmitted until the stream enters &#8220;half-closed (local)&#8221; state, or all data between the largest Minimum Stream Offset field in an acknowledged EXPIRED_STREAM_DATA frame and the current minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) has been acknowledged.</p>
+<p id="rfc.section.5.p.1">Upon receipt of an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>), the receiver SHOULD assume that none of the data before the new current receive offset (<a href="#offsets" class="xref">Section 2.3</a>) will be retransmitted.  A receiver SHOULD discard any stream data received for an offset smaller than the new current receive offset.  Discarding such data ensures that when the application observes a gap in the data stream, what follows the gap is a beginning of a new message.</p>
+<p id="rfc.section.5.p.2">It is recommended that a QUIC library API provides a way for a receiver application to learn of the presence of a gap in the data stream, indicating that the data that follows the gap is a beginning of a new message.</p>
 <h1 id="rfc.section.6">
-<a href="#rfc.section.6">6.</a> <a href="#iana" id="iana">IANA Considerations</a>
+<a href="#rfc.section.6">6.</a> <a href="#retransmission" id="retransmission">Retransmission of EXPIRED_STREAM_DATA</a>
 </h1>
-<p id="rfc.section.6.p.1">This document has no actions for IANA.</p>
+<p id="rfc.section.6.p.1">The most recent EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>) for a stream MUST be retransmitted if it is declared lost, until the sender is certain that the receiver is not expecting retransmission of any expired data.  I.e. the frame MUST be retransmitted until the stream enters &#8220;half-closed (local)&#8221; state, or all data between the largest Minimum Stream Offset field in an acknowledged EXPIRED_STREAM_DATA frame and the current minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) has been acknowledged.</p>
 <h1 id="rfc.section.7">
-<a href="#rfc.section.7">7.</a> <a href="#security" id="security">Security Considerations</a>
+<a href="#rfc.section.7">7.</a> <a href="#iana" id="iana">IANA Considerations</a>
 </h1>
-<p id="rfc.section.7.p.1">This document has no new security considerations.</p>
+<p id="rfc.section.7.p.1">This document has no actions for IANA.</p>
 <h1 id="rfc.section.8">
-<a href="#rfc.section.8">8.</a> <a href="#change-log" id="change-log">Change Log</a>
+<a href="#rfc.section.8">8.</a> <a href="#security" id="security">Security Considerations</a>
 </h1>
-<h1 id="rfc.section.8.1">
-<a href="#rfc.section.8.1">8.1.</a> <a href="#since-version-00" id="since-version-00">Since version 00</a>
+<p id="rfc.section.8.p.1">This document has no new security considerations.</p>
+<h1 id="rfc.section.9">
+<a href="#rfc.section.9">9.</a> <a href="#change-log" id="change-log">Change Log</a>
+</h1>
+<h1 id="rfc.section.9.1">
+<a href="#rfc.section.9.1">9.1.</a> <a href="#since-version-00" id="since-version-00">Since version 00</a>
 </h1>
 <p></p>
 
 <ul><li>Fixed flow control to disallow other streams to use connection credits designated for skipping expired bytes.</li></ul>
-<h1 id="rfc.section.8.2">
-<a href="#rfc.section.8.2">8.2.</a> <a href="#since-version-01" id="since-version-01">Since version 01</a>
+<h1 id="rfc.section.9.2">
+<a href="#rfc.section.9.2">9.2.</a> <a href="#since-version-01" id="since-version-01">Since version 01</a>
 </h1>
 <p></p>
 
@@ -527,8 +528,8 @@ ul.toc li {
 <li>Changed MIN_STREAM_DATA frame to be a receiver-transmitted frame.</li>
 <li>Added sender-transmitted EXPIRED_STREAM_DATA frame.  (<a href="#frame-expired-stream-data" class="xref">Section 3</a>)</li>
 </ul>
-<h1 id="rfc.section.8.3">
-<a href="#rfc.section.8.3">8.3.</a> <a href="#since-version-01-1" id="since-version-01-1">Since version 01</a>
+<h1 id="rfc.section.9.3">
+<a href="#rfc.section.9.3">9.3.</a> <a href="#since-version-01-1" id="since-version-01-1">Since version 01</a>
 </h1>
 <p></p>
 
@@ -538,12 +539,12 @@ ul.toc li {
 <li>Removed the need for Exempt Stream Bytes and changes to connection flow control accounting.</li>
 <li>Removed MIN_STREAM_DATA frame.</li>
 </ul>
-<h1 id="rfc.section.9">
-<a href="#rfc.section.9">9.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
+<h1 id="rfc.section.10">
+<a href="#rfc.section.10">10.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
 </h1>
-<p id="rfc.section.9.p.1">Many thanks to Mike Bishop, Ian Swett, and Subodh Iyengar for their reviews, feedback, and ideas.  Thus draft would not happen without their input.  Kudos to the QUIC working group for a mountain of feedback on this draft and for diligently plowing through hard problems, making thousands of big and small decisions, to make the Internet better for everyone.</p>
+<p id="rfc.section.10.p.1">Many thanks to Mike Bishop, Ian Swett, and Subodh Iyengar for their reviews, feedback, and ideas.  Thus draft would not happen without their input.  Kudos to the QUIC working group for a mountain of feedback on this draft and for diligently plowing through hard problems, making thousands of big and small decisions, to make the Internet better for everyone.</p>
 <h1 id="rfc.references">
-<a href="#rfc.references">10.</a> Normative References</h1>
+<a href="#rfc.references">11.</a> Normative References</h1>
 <table><tbody>
 <tr>
 <td class="reference"><b id="I-D.ietf-quic-applicability">[I-D.ietf-quic-applicability]</b></td>
