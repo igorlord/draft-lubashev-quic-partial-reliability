@@ -1,0 +1,594 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head profile="http://www.w3.org/2006/03/hcard http://dublincore.org/documents/2008/08/04/dc-html/">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+
+  <title>Partially Reliable Message Streams for QUIC</title>
+
+  
+<style type="text/css">/*<![CDATA[*/
+
+body {
+  font: 16px "Helvetica Neue","Open Sans",Helvetica,Calibri,sans-serif;
+  color: #333;
+  font-size-adjust: 0.5;
+  line-height: 24px;
+  margin: 75px auto;
+  max-width: 724px;
+  padding: 0 5px;
+}
+
+.title, .filename, h1, h2, h3, h4, h5 {
+  font: 16px "Roboto Condensed","Helvetica Neue","Open Sans",Helvetica,Calibri,sans-serif;
+  font-size-adjust: 0.5;
+  font-weight: bold;
+  color: #333;
+  line-height: 100%;
+  margin: 0.8em 0 0.3em;
+}
+.title, #rfc\.title h1 { font-size: 32px; }
+h1, section h1, h2, section h2, section h3, nav h2 { font-size: 20px; }
+h3, section h4, h4, section h5 { font-size: 16px; }
+h1 a[href], h2 a[href], h3 a[href], h4 a[href] {
+  color: #333;
+}
+
+table {
+  margin-left: 0em;
+  border-collapse: collapse;
+}
+th {
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+  vertical-align: top;
+}
+tr:nth-child(2n+1) > td,
+tr:nth-child(2n+1) > th {
+  background-color: #f9f9f9;
+}
+td.reference {
+  max-width: 200px;
+  border-top: none;
+  padding-right: 1em;
+}
+.right {
+  text-align: right;
+}
+
+
+table.header, table#rfc\.headerblock {
+  width: 100%;
+}
+table.header td, table#rfc\.headerblock td {
+  border: none;
+  background-color: transparent;
+  color: black;
+  padding: 0;
+}
+.filename {
+  display: block;
+  color: rgb(119, 119, 119);
+  font-size: 20px;
+  font-weight: normal;
+  line-height: 100%;
+  margin: 10px 0 32px;
+}
+#rfc\.abstract+p, #rfc\.abstract p {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+samp, tt, code, pre {
+  font: 11pt consolas, monospace;
+  font-size-adjust: none;
+}
+pre {
+  background-color: #eee;
+  border: 1px solid #ddd;
+  overflow-x: auto;
+  padding: 5px;
+  margin: 5px;
+}
+.figure, caption {
+  font-style: italic;
+  margin: 0 1.5em;
+  text-align: left;
+}
+
+address {
+  margin: 16px 2px;
+  line-height: 20px;
+}
+.vcard {
+  font-style: normal;
+}
+.vcardline {
+  display: block;
+}
+.vcardline .fn, address b {
+  font-weight: normal;
+}
+.vcardline .hidden {
+  display: none;
+}
+
+dl {
+  margin-left: 1em;
+}
+dl.dl-horizontal: {
+  margin-left: 0;
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.nohang > dt {
+  float: none;
+}
+dl > dd {
+  margin-bottom: .5em;
+}
+dl.compact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+ul.empty {
+  list-style-type: none;
+}
+ul.empty li {
+  margin-top: .5em;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+hr.noprint {
+  display: none;
+}
+
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #2a6496;
+}
+a[href]:hover {
+  background-color: #eee;
+}
+
+ol, ul, li, p {
+  padding: 0;
+  margin: 0.5em 0 0.5em 2em;
+}
+li, p {
+  margin-left: 0;
+}
+address {
+  font-style: normal;
+}
+
+ul.toc ul {
+  margin: 0 0 0 2em;
+}
+ul.toc li {
+  list-style: none;
+  margin: 0;
+}
+
+@media screen and (min-width: 1024px) {
+  body {
+    padding-right: 350px;
+  }
+  body>ul.toc, body>#rfc\.toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 550px);
+    width: 300px;
+    z-index: 1;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  body>#rfc\.toc {
+    top: 55px;
+  }
+  body>ul.toc {
+    top: 100px;
+  }
+
+  ul.toc {
+    margin: 0 0 0 4px;
+    font-size: 12px;
+    line-height: 20px;
+  }
+  ul.toc ul {
+    margin-left: 1.2em;
+  }
+}
+
+.github-fork-ribbon-wrapper {
+  display: none;
+}
+@media screen and (min-width: 800px) {
+  /* "Fork me on GitHub" CSS ribbon based on
+   * https://github.com/simonwhitaker/github-fork-ribbon-css
+   */
+  .github-fork-ribbon {
+    position: absolute;
+    padding: 2px 0;
+    background-color: #a00;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15));
+    box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.5);
+    font: 700 12px "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    pointer-events: auto;
+
+    top: 38px;
+    right: -45px;
+
+    transform: rotate(45deg);
+  }
+
+  .github-fork-ribbon a[href],
+  .github-fork-ribbon a[href]:hover {
+    color: #fff;
+    background-color: transparent;
+    text-decoration: none;
+    text-shadow: 0 -1px rgba(0, 0, 0, 0.5);
+    text-align: center;
+
+    width: 190px;
+    line-height: 18px;
+
+    display: inline-block;
+    padding: 2px 0;
+
+    border: 1.5px dotted #fff;
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  .github-fork-ribbon-wrapper {
+    display: block;
+    width: 130px;
+    height: 130px;
+    position: absolute;
+    overflow: hidden;
+    top: 0; right: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+}
+@media screen and (min-width: 1000px) {
+  .github-fork-ribbon-wrapper {
+    position: fixed;
+  }
+  /*]]>*/</style>
+  <meta name="viewport" content="initial-scale=1.0">
+
+
+  <link href="#rfc.toc" rel="Contents">
+<link href="#rfc.section.1" rel="Chapter" title="1 Notational Conventions">
+<link href="#rfc.section.2" rel="Chapter" title="2 Introduction">
+<link href="#rfc.section.2.1" rel="Chapter" title="2.1 Stream-per-Message Alternative">
+<link href="#rfc.section.2.2" rel="Chapter" title="2.2 Partially Reliable Message Streams">
+<link href="#rfc.section.2.3" rel="Chapter" title="2.3 Minimum retransmittable offset and current receive offset">
+<link href="#rfc.section.3" rel="Chapter" title="3 EXPIRED_STREAM_DATA Frame">
+<link href="#rfc.section.4" rel="Chapter" title="4 Sender Interface and Behavior">
+<link href="#rfc.section.4.1" rel="Chapter" title="4.1 Translating Application Offsets to QUIC Offsets">
+<link href="#rfc.section.4.2" rel="Chapter" title="4.2 Receiver Interface and Behavior">
+<link href="#rfc.section.5" rel="Chapter" title="5 Retransmission of EXPIRED_STREAM_DATA">
+<link href="#rfc.section.6" rel="Chapter" title="6 IANA Considerations">
+<link href="#rfc.section.7" rel="Chapter" title="7 Security Considerations">
+<link href="#rfc.section.8" rel="Chapter" title="8 Change Log">
+<link href="#rfc.section.8.1" rel="Chapter" title="8.1 Since version 00">
+<link href="#rfc.section.8.2" rel="Chapter" title="8.2 Since version 01">
+<link href="#rfc.section.8.3" rel="Chapter" title="8.3 Since version 01">
+<link href="#rfc.section.9" rel="Chapter" title="9 Acknowledgments">
+<link href="#rfc.references" rel="Chapter" title="10 Normative References">
+<link href="#rfc.authors" rel="Chapter">
+
+
+  <meta name="generator" content="xml2rfc version 2.9.6 - https://tools.ietf.org/tools/xml2rfc" />
+  <link rel="schema.dct" href="http://purl.org/dc/terms/" />
+
+  <meta name="dct.creator" content="Lubashev, I." />
+  <meta name="dct.identifier" content="urn:ietf:id:draft-lubashev-quic-partial-reliability-latest" />
+  <meta name="dct.issued" scheme="ISO8601" content="2018-26" />
+  <meta name="dct.abstract" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
+  <meta name="description" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
+
+</head>
+
+<body>
+
+  <table class="header">
+    <tbody>
+    
+    	<tr>
+<td class="left">QUIC</td>
+<td class="right">I. Lubashev</td>
+</tr>
+<tr>
+<td class="left">Internet-Draft</td>
+<td class="right">Akamai Technologies</td>
+</tr>
+<tr>
+<td class="left">Intended status: Informational</td>
+<td class="right">May 26, 2018</td>
+</tr>
+<tr>
+<td class="left">Expires: November 27, 2018</td>
+<td class="right"></td>
+</tr>
+
+    	
+    </tbody>
+  </table>
+
+  <p class="title">Partially Reliable Message Streams for QUIC<br />
+  <span class="filename">draft-lubashev-quic-partial-reliability-latest</span></p>
+  
+  <h1 id="rfc.abstract"><a href="#rfc.abstract">Abstract</a></h1>
+<p>This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature.</p>
+<h1 id="rfc.status"><a href="#rfc.status">Status of This Memo</a></h1>
+<p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
+<p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at https://datatracker.ietf.org/drafts/current/.</p>
+<p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
+<p>This Internet-Draft will expire on November 27, 2018.</p>
+<h1 id="rfc.copyrightnotice"><a href="#rfc.copyrightnotice">Copyright Notice</a></h1>
+<p>Copyright (c) 2018 IETF Trust and the persons identified as the document authors.  All rights reserved.</p>
+<p>This document is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents (https://trustee.ietf.org/license-info) in effect on the date of publication of this document.  Please review these documents carefully, as they describe your rights and restrictions with respect to this document.  Code Components extracted from this document must include Simplified BSD License text as described in Section 4.e of the Trust Legal Provisions and are provided without warranty as described in the Simplified BSD License.</p>
+
+  
+  <hr class="noprint" />
+  <h1 class="np" id="rfc.toc"><a href="#rfc.toc">Table of Contents</a></h1>
+  <ul class="toc">
+
+  	<li>1.   <a href="#rfc.section.1">Notational Conventions</a>
+</li>
+<li>2.   <a href="#rfc.section.2">Introduction</a>
+</li>
+<ul><li>2.1.   <a href="#rfc.section.2.1">Stream-per-Message Alternative</a>
+</li>
+<li>2.2.   <a href="#rfc.section.2.2">Partially Reliable Message Streams</a>
+</li>
+<li>2.3.   <a href="#rfc.section.2.3">Minimum retransmittable offset and current receive offset</a>
+</li>
+</ul><li>3.   <a href="#rfc.section.3">EXPIRED_STREAM_DATA Frame</a>
+</li>
+<li>4.   <a href="#rfc.section.4">Sender Interface and Behavior</a>
+</li>
+<ul><li>4.1.   <a href="#rfc.section.4.1">Translating Application Offsets to QUIC Offsets</a>
+</li>
+<li>4.2.   <a href="#rfc.section.4.2">Receiver Interface and Behavior</a>
+</li>
+</ul><li>5.   <a href="#rfc.section.5">Retransmission of EXPIRED_STREAM_DATA</a>
+</li>
+<li>6.   <a href="#rfc.section.6">IANA Considerations</a>
+</li>
+<li>7.   <a href="#rfc.section.7">Security Considerations</a>
+</li>
+<li>8.   <a href="#rfc.section.8">Change Log</a>
+</li>
+<ul><li>8.1.   <a href="#rfc.section.8.1">Since version 00</a>
+</li>
+<li>8.2.   <a href="#rfc.section.8.2">Since version 01</a>
+</li>
+<li>8.3.   <a href="#rfc.section.8.3">Since version 01</a>
+</li>
+</ul><li>9.   <a href="#rfc.section.9">Acknowledgments</a>
+</li>
+<li>10.   <a href="#rfc.references">Normative References</a>
+</li>
+<li><a href="#rfc.authors">Author's Address</a>
+</li>
+
+
+  </ul>
+
+  <h1 id="rfc.section.1">
+<a href="#rfc.section.1">1.</a> <a href="#conventions" id="conventions">Notational Conventions</a>
+</h1>
+<p id="rfc.section.1.p.1">The key words &#8220;MUST&#8221;, &#8220;MUST NOT&#8221;, &#8220;REQUIRED&#8221;, &#8220;SHALL&#8221;, &#8220;SHALL NOT&#8221;, &#8220;SHOULD&#8221;, &#8220;SHOULD NOT&#8221;, &#8220;RECOMMENDED&#8221;, &#8220;MAY&#8221;, and &#8220;OPTIONAL&#8221; in this document are to be interpreted as described in <a href="#RFC2119" class="xref">[RFC2119]</a>.</p>
+<h1 id="rfc.section.2">
+<a href="#rfc.section.2">2.</a> <a href="#introduction" id="introduction">Introduction</a>
+</h1>
+<p id="rfc.section.2.p.1">Some applications, especially applications with near real-time requirements, need transport that supports partially reliable streams &#8211; streams that deliver bytes in order but allow for applicaiton-controlled gaps.  These applications communicate using application-specific messages that are serialized over QUIC streams.  Applications desire partially reliable streams when their messages expire and lose their usefulness due to later events (time passing, newer messages, etc).</p>
+<p id="rfc.section.2.p.2">Examples of applications that can benefit from partially reliable streams are real time video (all prior data is to be expired when a new key frame is available) and data replication (expire previous updates, when a new update overwrites the data).</p>
+<p id="rfc.section.2.p.3">The content of this draft is intended for <a href="#I-D.ietf-quic-transport" class="xref">[I-D.ietf-quic-transport]</a>, <a href="#I-D.ietf-quic-recovery" class="xref">[I-D.ietf-quic-recovery]</a> and, <a href="#I-D.ietf-quic-applicability" class="xref">[I-D.ietf-quic-applicability]</a> as a QUIC extension and/or QUIC Version 2.</p>
+<h1 id="rfc.section.2.1">
+<a href="#rfc.section.2.1">2.1.</a> <a href="#stream-per-message-alternative" id="stream-per-message-alternative">Stream-per-Message Alternative</a>
+</h1>
+<p id="rfc.section.2.1.p.1">It is possible to avoid the need for partially reliable streams by encoding one message per QUIC stream.  When a message expires, the sender can reset the stream, causing RST_STREAM frame to be transmitted, unless all data in the stream has already been fully acknowledged.  Likewise, the receiver can send STOP_SENDING frame to indicate its disinterest in the message.  The problem with this approach is that messages transmitted by the application typically belong to a message stream, and applications may need to support multiple concurrent message streams.  Hence, a message-per-stream approach requires each message to contain an extra header portion to associate the message with a logical application stream.  In case of short messages, this approach introduces a significant overhead due to STREAM frames and message headers. It also places the burden on the application to reorder data arriving on multiple QUIC streams.  Furthermore, splitting each application stream into multiple QUIC streams renders QUIC&#8217;s per-stream flow control ineffective and requires an application to build its own.</p>
+<h1 id="rfc.section.2.2">
+<a href="#rfc.section.2.2">2.2.</a> <a href="#partially-reliable-message-streams" id="partially-reliable-message-streams">Partially Reliable Message Streams</a>
+</h1>
+<p id="rfc.section.2.2.p.1">The proposed single-stream mechanism keeps aplication messages arriving in order on a single stream, while allowing the application to control message expiration.</p>
+<p id="rfc.section.2.2.p.2">The key to partially reliabile message streams is notifying the receiver about data that will not be retransmitted and ensuring that the receiver can identify the beginning of each new message.</p>
+<p id="rfc.section.2.2.p.3">It is important to note that the proposed protocol does not guarantee that data is read by the receiver application at the stream offsets written to by the sender application.</p>
+<h1 id="rfc.section.2.3">
+<a href="#rfc.section.2.3">2.3.</a> <a href="#offsets" id="offsets">Minimum retransmittable offset and current receive offset</a>
+</h1>
+<p id="rfc.section.2.3.p.1">For fully reliable streams, the smallest unacknowledged data offset is treated by the sender to be the minimum retransmittable offset.  Likewise, the current receive offset for a stream is the smallest data offset that has not been received by the receiver.  Note that due to loss and reordering, the current receive offset may be smaller than the largest received offset.</p>
+<p id="rfc.section.2.3.p.2">Partially reliable streams allow the sender to advance its minimum retransmittable offset and notify the receiver to advance its current receive offset.</p>
+<h1 id="rfc.section.3">
+<a href="#rfc.section.3">3.</a> <a href="#frame-expired-stream-data" id="frame-expired-stream-data">EXPIRED_STREAM_DATA Frame</a>
+</h1>
+<p id="rfc.section.3.p.1">The EXPIRED_STREAM_DATA frame (type=0x??) is used by a sender to inform a receiver of the minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) for a stream.</p>
+<p id="rfc.section.3.p.2">Sending EXPIRED_STREAM_DATA frame may advance the stream&#8217;s current send offset, which MUST satisfy stream and connection flow control.</p>
+<p id="rfc.section.3.p.3">The frame is as follows:</p>
+<pre>
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Stream ID (i)                        ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                  Minimum Stream Offset (i)                  ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</pre>
+<p id="rfc.section.3.p.4">The fields in the EXPIRED_STREAM_DATA frame are as follows:</p>
+<p></p>
+
+<dl>
+<dt>Stream ID:</dt>
+<dd style="margin-left: 8">The stream ID of the stream that is affected encoded as a variable-length integer.</dd>
+<dt>Minimum Stream Offset:</dt>
+<dd style="margin-left: 8">A variable-length integer indicating the minimum offset of the stream data that will sent (or re-transmitted) on the identified stream, in units of octets.</dd>
+</dl>
+<p id="rfc.section.3.p.6">Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.</p>
+<p id="rfc.section.3.p.7">Upon receipt of an EXPIRED_STREAM_DATA frame, the receiver advances the current receive offset for the stream to be Minimum Stream Offset value.</p>
+<p id="rfc.section.3.p.8">If the current receive offset becomes larger than the largest received offset for the stream, the receiver MUST advance the stream&#8217;s largest received offset to be the current receive offset.</p>
+<p id="rfc.section.3.p.9">The sender MUST NOT reduce the minimum retransmittable offset for a stream, but loss and reordering can cause EXPIRED_STREAM_DATA frames to be received out of order.  EXPIRED_STREAM_DATA frames that do not advance the current receive offset for the stream MUST be ignored.</p>
+<p id="rfc.section.3.p.10">An endpoint that receives an EXPIRED_STREAM_DATA frame for a send-only stream MUST terminate the connection with error PROTOCOL_VIOLATION.</p>
+<h1 id="rfc.section.4">
+<a href="#rfc.section.4">4.</a> <a href="#sender-interface" id="sender-interface">Sender Interface and Behavior</a>
+</h1>
+<p id="rfc.section.4.p.1">QUIC library interface needs provide a way for a sender to expire data previously written to the transport by updating the minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) for a stream.  A typical sender would call this API function whenever data previously enqueued for transmission expires, per application semantics.  The sender would keep track of the message boundaries and request expiration of data on a message boundary.</p>
+<p id="rfc.section.4.p.2">When an application instructs its QUIC transport to advance the minimum retransmittable offset for a stream, and there is any unacknowledged data (including unsent data) at an offset smaller than the new minimum retransmittable offset, the sender SHOULD transmit an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>).</p>
+<p></p>
+
+<ul>
+<li>When the new minimum retransmittable offset is less than or equal to the current send offset, the Minimum Stream Offset field in the EXPIRED_STREAM_DATA frame is set to the new minimum retransmittable offset.</li>
+<li>When the new minimum retransmittable offset is larger the current send offset, the Minimum Stream Offset field in the EXPIRED_STREAM_DATA frame is set to the current send offset plus 1, and stream data starting at the new minimum retransmittable offset is henceforth sent starting at the current send offset plus 1 (which becomes the new minimum retransmittable offset).  <br><br> It is recommended to not advance the current send offset until a STREAM frame is sent and to avoid sending identical EXPIRED_STREAM_DATA frames except due to retransmission.  <br><br> Note that an EXPIRED_STREAM_DATA frame is sent evern if the very first message has expired before any of its octets have been transmitted.  This allows the receiver to always ascertain whether there are any gaps in messages it is receiving.</li>
+</ul>
+<h1 id="rfc.section.4.1">
+<a href="#rfc.section.4.1">4.1.</a> <a href="#translating-application-offsets-to-quic-offsets" id="translating-application-offsets-to-quic-offsets">Translating Application Offsets to QUIC Offsets</a>
+</h1>
+<p id="rfc.section.4.1.p.1">To allow a sender to expire a large amount of stream data never sent to the receiver, the sender needs to create a gap between the data previously sent on the stream and the data to be sent after the expiration point.  A single octet gap is used for this purpose.  Sender&#8217;s EXPIRED_STREAM_DATA frame extends the minimum stream offset past that gap.  The gap ensures that the receiver does not deliver subsequent octets to the application until the receipt of the EXPIRED_STREAM_DATA frame, in case packets containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame are lost or reordered.  Upon receipt of the EXPIRED_STREAM_DATA frame, the receiver will be able to notify the application of a gap, which will allow the application to identify the beginning of a new message.</p>
+<p id="rfc.section.4.1.p.2">For example, an application wrote four 10-octet messages (A, B, C, D) to the transport, and the current send offset (the next offset to be sent) is 12.</p>
+<pre>
+ 0                   1   s               2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|A A A A A A A A A A B B B B B B B B B B C C C C C C C C C C D D ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</pre>
+<p id="rfc.section.4.1.p.3">Then, the application would like to expire the first two messages and requests minimum retransmittable offset to be 20.  The transport will then send an EXPIRED_STREAM_DATA frame with Minimum Stream Offset field set to 13 and a subsequent STREAM frame will send the C message starting at stream offset 13.</p>
+<pre>
+ 0                   1   s m             2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|A A A A A A A A A A B B   C C C C C C C C C C D D D D D D D D D D
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</pre>
+<p id="rfc.section.4.1.p.4">However, if before any subsequent STREAM frames could be sent, the application write another messages to the transport and requested to expire octets corresponding to message C, no new EXPIRED_STREAM_DATA frame is sent, and a subsequent STREAM frame will send the D message starting at stream offset 13.</p>
+<pre>
+ 0                   1   s m             2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|A A A A A A A A A A B B   D D D D D D D D D D
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</pre>
+<p id="rfc.section.4.1.p.5">Since the QUIC library and the application need to communicate data offsets (for example, for the purpose of updating the minimum retransmittable stream offset), the QUIC library needs to translate appliction offsets to QUIC offsets.  Depending on the richness of the APIs exposed to the application, a single difference between the current application and QUIC offsets is likely to be sufficient.</p>
+<h1 id="rfc.section.4.2">
+<a href="#rfc.section.4.2">4.2.</a> <a href="#receiver-interface" id="receiver-interface">Receiver Interface and Behavior</a>
+</h1>
+<p id="rfc.section.4.2.p.1">Upon receipt of an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>), the receiver SHOULD assume that none of the data before the new current receive offset (<a href="#offsets" class="xref">Section 2.3</a>) will be retransmitted.  A receiver SHOULD discard any stream data received for an offset smaller than the new current receive offset.  Discarding such data ensures that when the application observes a gap in the data stream, what follows the gap is a beginning of a new message.</p>
+<p id="rfc.section.4.2.p.2">It is recommended that a QUIC library API provides a way for a receiver application to learn of the presence of a gap in the data stream, indicating that the data that follows the gap is a beginning of a new message.</p>
+<h1 id="rfc.section.5">
+<a href="#rfc.section.5">5.</a> <a href="#retransmission" id="retransmission">Retransmission of EXPIRED_STREAM_DATA</a>
+</h1>
+<p id="rfc.section.5.p.1">The most recent EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>) for a stream MUST be retransmitted if it is declared lost, until the sender is certain that the receiver is not expecting retransmission of any expired data.  I.e. the frame MUST be retransmitted until the stream enters &#8220;half-closed (local)&#8221; state, or all data between the largest Minimum Stream Offset field in an acknowledged EXPIRED_STREAM_DATA frame and the current minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) has been acknowledged.</p>
+<h1 id="rfc.section.6">
+<a href="#rfc.section.6">6.</a> <a href="#iana" id="iana">IANA Considerations</a>
+</h1>
+<p id="rfc.section.6.p.1">This document has no actions for IANA.</p>
+<h1 id="rfc.section.7">
+<a href="#rfc.section.7">7.</a> <a href="#security" id="security">Security Considerations</a>
+</h1>
+<p id="rfc.section.7.p.1">This document has no new security considerations.</p>
+<h1 id="rfc.section.8">
+<a href="#rfc.section.8">8.</a> <a href="#change-log" id="change-log">Change Log</a>
+</h1>
+<h1 id="rfc.section.8.1">
+<a href="#rfc.section.8.1">8.1.</a> <a href="#since-version-00" id="since-version-00">Since version 00</a>
+</h1>
+<p></p>
+
+<ul><li>Fixed flow control to disallow other streams to use connection credits designated for skipping expired bytes.</li></ul>
+<h1 id="rfc.section.8.2">
+<a href="#rfc.section.8.2">8.2.</a> <a href="#since-version-01" id="since-version-01">Since version 01</a>
+</h1>
+<p></p>
+
+<ul>
+<li>Added an ability by the receiver as well as the sender to control partial reliability of QUIC streams.</li>
+<li>Added Exempt Stream Bytes value and updated connection flow control calculation to use Exempt Stream Bytes value.</li>
+<li>Replaced the Min Stream Offset value with the existing values: &#8220;min retransmittable offset&#8221; (for sender) and &#8220;current receive offset&#8221; (for receiver).  (<a href="#offsets" class="xref">Section 2.3</a>)</li>
+<li>Changed MIN_STREAM_DATA frame to be a receiver-transmitted frame.</li>
+<li>Added sender-transmitted EXPIRED_STREAM_DATA frame.  (<a href="#frame-expired-stream-data" class="xref">Section 3</a>)</li>
+</ul>
+<h1 id="rfc.section.8.3">
+<a href="#rfc.section.8.3">8.3.</a> <a href="#since-version-01-1" id="since-version-01-1">Since version 01</a>
+</h1>
+<p></p>
+
+<ul>
+<li>Significantly simplifed the proposal by treating the stream as a message stream, allowing for data offsets not to be preserved between the sender and the receiver.</li>
+<li>Reverted to sender-only transport-level control of message expiration.</li>
+<li>Removed the need for Exempt Stream Bytes and changes to connection flow control accounting.</li>
+<li>Removed MIN_STREAM_DATA frame.</li>
+</ul>
+<h1 id="rfc.section.9">
+<a href="#rfc.section.9">9.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
+</h1>
+<p id="rfc.section.9.p.1">Many thanks to Mike Bishop, Ian Swett, and Subodh Iyengar for their reviews, feedback, and ideas.  Thus draft would not happen without their input.  Kudos to the QUIC working group for a mountain of feedback on this draft and for diligently plowing through hard problems, making thousands of big and small decisions, to make the Internet better for everyone.</p>
+<h1 id="rfc.references">
+<a href="#rfc.references">10.</a> Normative References</h1>
+<table><tbody>
+<tr>
+<td class="reference"><b id="I-D.ietf-quic-applicability">[I-D.ietf-quic-applicability]</b></td>
+<td class="top">
+<a>Kuehlewind, M.</a> and <a>B. Trammell</a>, "<a href="https://tools.ietf.org/html/draft-ietf-quic-applicability-01">Applicability of the QUIC Transport Protocol</a>", Internet-Draft draft-ietf-quic-applicability-01, October 2017.</td>
+</tr>
+<tr>
+<td class="reference"><b id="I-D.ietf-quic-recovery">[I-D.ietf-quic-recovery]</b></td>
+<td class="top">
+<a>Iyengar, J.</a> and <a>I. Swett</a>, "<a href="https://tools.ietf.org/html/draft-ietf-quic-recovery-12">QUIC Loss Detection and Congestion Control</a>", Internet-Draft draft-ietf-quic-recovery-12, May 2018.</td>
+</tr>
+<tr>
+<td class="reference"><b id="I-D.ietf-quic-transport">[I-D.ietf-quic-transport]</b></td>
+<td class="top">
+<a>Iyengar, J.</a> and <a>M. Thomson</a>, "<a href="https://tools.ietf.org/html/draft-ietf-quic-transport-12">QUIC: A UDP-Based Multiplexed and Secure Transport</a>", Internet-Draft draft-ietf-quic-transport-12, May 2018.</td>
+</tr>
+<tr>
+<td class="reference"><b id="RFC2119">[RFC2119]</b></td>
+<td class="top">
+<a>Bradner, S.</a>, "<a href="https://tools.ietf.org/html/rfc2119">Key words for use in RFCs to Indicate Requirement Levels</a>", BCP 14, RFC 2119, DOI 10.17487/RFC2119, March 1997.</td>
+</tr>
+</tbody></table>
+<h1 id="rfc.authors"><a href="#rfc.authors">Author's Address</a></h1>
+<div class="avoidbreak">
+  <address class="vcard">
+	<span class="vcardline">
+	  <span class="fn">Igor Lubashev</span> 
+	  <span class="n hidden">
+		<span class="family-name">Lubashev</span>
+	  </span>
+	</span>
+	<span class="org vcardline">Akamai Technologies</span>
+	<span class="adr">
+	  
+	  <span class="vcardline">
+		<span class="locality"></span> 
+		<span class="region"></span>
+		<span class="code"></span>
+	  </span>
+	  <span class="country-name vcardline"></span>
+	</span>
+	<span class="vcardline">EMail: <a href="mailto:igorlord@alum.mit.edu">igorlord@alum.mit.edu</a></span>
+
+  </address>
+</div>
+
+</body>
+</html>
