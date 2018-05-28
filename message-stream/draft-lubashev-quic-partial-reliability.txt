@@ -67,21 +67,21 @@ Table of Contents
    2.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
      2.1.  Stream-per-Message Alternative  . . . . . . . . . . . . .   3
      2.2.  Partially Reliable Message Streams  . . . . . . . . . . .   3
-     2.3.  Minimum retransmittable offset and current receive offset   3
+     2.3.  Minimum retransmittable offset and smallest receive
+           offset  . . . . . . . . . . . . . . . . . . . . . . . . .   3
    3.  EXPIRED_STREAM_DATA Frame . . . . . . . . . . . . . . . . . .   4
    4.  Sender Interface and Behavior . . . . . . . . . . . . . . . .   5
      4.1.  Coalescing Minimum Retransmittable Offset Updates . . . .   5
      4.2.  Translating Application Offsets to QUIC Offsets . . . . .   6
-     4.3.  Stream and Connection Flow Control Considerations . . . .   7
    5.  Receiver Interface and Behavior . . . . . . . . . . . . . . .   7
    6.  Retransmission of EXPIRED_STREAM_DATA . . . . . . . . . . . .   7
-   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   8
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   8
-   9.  Change Log  . . . . . . . . . . . . . . . . . . . . . . . . .   8
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   7
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   7
+   9.  Change Log  . . . . . . . . . . . . . . . . . . . . . . . . .   7
      9.1.  Since version 00  . . . . . . . . . . . . . . . . . . . .   8
      9.2.  Since version 01  . . . . . . . . . . . . . . . . . . . .   8
-     9.3.  Since version 01  . . . . . . . . . . . . . . . . . . . .   8
-   10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   9
+     9.3.  Since version 02  . . . . . . . . . . . . . . . . . . . .   8
+   10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   8
    11. Normative References  . . . . . . . . . . . . . . . . . . . .   9
    Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .   9
 
@@ -152,13 +152,13 @@ Internet-Draft                   quic-pr                        May 2018
    that data is read by the receiver application at the stream offsets
    written to by the sender application.
 
-2.3.  Minimum retransmittable offset and current receive offset
+2.3.  Minimum retransmittable offset and smallest receive offset
 
    For fully reliable streams, the smallest unacknowledged data offset
    is treated by the sender to be the minimum retransmittable offset.
-   Likewise, the current receive offset for a stream is the smallest
+   Likewise, the smallest receive offset for a stream is the smallest
    data offset that has not been received by the receiver.  Due to loss
-   and reordering, the current receive offset may be smaller than the
+   and reordering, the smallest receive offset may be smaller than the
    largest received offset.
 
 
@@ -171,8 +171,8 @@ Internet-Draft                   quic-pr                        May 2018
 
 
    Partially reliable streams allow the sender to advance its minimum
-   retransmittable offset and notify the receiver to advance its current
-   receive offset.
+   retransmittable offset and notify the receiver to advance its
+   smallest receive offset.
 
 3.  EXPIRED_STREAM_DATA Frame
 
@@ -206,18 +206,18 @@ Internet-Draft                   quic-pr                        May 2018
    Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.
 
    Upon receipt of an EXPIRED_STREAM_DATA frame, the receiver advances
-   the current receive offset for the stream to be Minimum Stream Offset
-   value.
+   the smallest receive offset for the stream (Section 2.3) to be the
+   Minimum Stream Offset value.
 
    The sender MUST NOT reduce the minimum retransmittable offset for a
    stream, but loss and reordering can cause EXPIRED_STREAM_DATA frames
    to be received out of order.  EXPIRED_STREAM_DATA frames that do not
-   advance the current receive offset for the stream MUST be ignored.
+   advance the smallest receive offset for the stream MUST be ignored.
 
-   If the current receive offset becomes larger than the largest
-   received offset for the stream, the receiver MUST advance the
-   stream's largest received offset to be the current receive offset.
-   If the new largest received offset is advaned past the current stream
+   It is possible for the smallest receive offset to become larger than
+   the largest received offset for the stream.  Receipt of an
+   EXPIRED_STREAM_DATA does not advance the largest received offset for
+   the stream.
 
 
 
@@ -225,9 +225,6 @@ Lubashev                Expires November 29, 2018               [Page 4]
 
 Internet-Draft                   quic-pr                        May 2018
 
-
-   and connection flow control window limits, an endpoint MUST terminate
-   a connection with a FLOW_CONTROL_ERROR error.
 
 4.  Sender Interface and Behavior
 
@@ -256,24 +253,27 @@ Internet-Draft                   quic-pr                        May 2018
       EXPIRED_STREAM_DATA frame is set to the current send offset plus
       1, and stream data starting at the new minimum retransmittable
       offset is henceforth sent starting at the current send offset plus
-      1 (which becomes the new current send offset and the new minimum
-      retransmittable offset).
+      1 (which becomes the new minimum retransmittable offset).  Hence,
+      it may be possible for a minimum retransmittable offset to become
+      larger than the current send offset for a stream.
 
 4.1.  Coalescing Minimum Retransmittable Offset Updates
 
    When an application instructs its QUIC transport to advance the
    minimum retransmittable offset for a stream, but the current send
-   offset is equal to the minimum stream offset specified in the
-   previous call to this API function, the current stream offset is not
-   advanced and an EXPIRED_STREAM_DATA frame is not sent.  Stream data
-   starting at the requested minimum retransmittable offset is
-   henceforth sent starting at the current send offset, and the minimum
-   retransmittable offset remains unchanged.
+   offset is not larger than the minimum retransmittable offset
+   specified in the _previous_ call to this API function, the current
+   stream offset is not advanced and an EXPIRED_STREAM_DATA frame is not
+   sent.  Stream data starting at the requested minimum retransmittable
+   offset is henceforth sent starting at the previous minimum
+   retransmittable offset (which remains the minimum retransmittable
+   offset for the stream).
 
    Note that the coalescing rule does not apply (the EXPIRED_STREAM_DATA
    frame _is_ sent) if the very first message has expired before any of
    its octets have been transmitted.  This allows the receiver to always
    ascertain the location of any gaps in messages it is receiving.
+
 
 
 
@@ -299,12 +299,13 @@ Internet-Draft                   quic-pr                        May 2018
 
    For example, an application wrote four 10-octet messages (A, B, C, D)
    to the transport, and the current send offset (the next offset to be
-   sent) is 12.
+   sent) is 12.  In this example, the upper-case letters indicate bytes
+   to be sent, while the lower-case letters indicate bytes already sent.
 
     0                   1   s               2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |A A A A A A A A A A B B B B B B B B B B C C C C C C C C C C D D ...
+   |a a a a a a a a a a b b B B B B B B B B C C C C C C C C C C D D ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
    When the application desires to expire the first two messages, it
@@ -313,10 +314,10 @@ Internet-Draft                   quic-pr                        May 2018
    field set to 13, and the subsequent STREAM frame would send message C
    starting at stream offset 13.
 
-    0                   1     s             2                   3
+    0                   1   s m             2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |A A A A A A A A A A B B   C C C C C C C C C C D D D D D D D D D D
+   |a a a a a a a a a a b b   C C C C C C C C C C D D D D D D D D D D
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
    However, if the application requestes to expire octets corresponding
@@ -324,12 +325,11 @@ Internet-Draft                   quic-pr                        May 2018
    new EXPIRED_STREAM_DATA frame is sent, and the subsequent STREAM
    frame would send message D starting at stream offset 13.
 
-    0                   1     s             2                   3
+    0                   1   s m             2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |A A A A A A A A A A B B   D D D D D D D D D D
+   |a a a a a a a a a a b b   D D D D D D D D D D
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
 
 
 
@@ -342,27 +342,17 @@ Internet-Draft                   quic-pr                        May 2018
    offsets (for example, for the purpose of updating the minimum
    retransmittable stream offset), the QUIC library needs to translate
    appliction offsets to QUIC offsets.  Depending on the richness of the
-   APIs exposed to the application, a single difference between the
-   current application and QUIC offsets is likely to be sufficient.
-
-4.3.  Stream and Connection Flow Control Considerations
-
-   Since EXPIRED_STREAM_DATA frame may advance the current send offset
-   by one to create a gap in the data stream, the sender may find itself
-   unable to send the EXPIRED_STREAM_DATA frame due to the lack of
-   stream or connection flow control credits.  In that case, the only
-   way to obtain more credits from the receiver would be to retransmit
-   unacknowledged expired data.  To avoid this issue, the sender SHOULD
-   avoid exhausting all stream and connection flow control credits using
-   STREAM frames.
+   APIs exposed to the application, keeping a single difference between
+   the current application and QUIC offsets is likely to be sufficient.
 
 5.  Receiver Interface and Behavior
 
    Upon receipt of an EXPIRED_STREAM_DATA frame (Section 3), the
-   receiver SHOULD assume that none of the data before the new current
+   receiver SHOULD assume that none of the data before the new smallest
    receive offset (Section 2.3) will be retransmitted.  A receiver
    SHOULD discard any stream data received for an offset smaller than
-   the new current receive offset.  Discarding such data ensures that
+   the new smallest receive offset, possibly advancing the largest
+   received offset for the stream.  Discarding such data ensures that
    when the application observes a gap in the data stream, what follows
    the gap is a beginning of a new message.
 
@@ -382,6 +372,16 @@ Internet-Draft                   quic-pr                        May 2018
    frame and the current minimum retransmittable offset (Section 2.3)
    has been acknowledged.
 
+7.  IANA Considerations
+
+   This document has no actions for IANA.
+
+8.  Security Considerations
+
+   This document has no new security considerations.
+
+9.  Change Log
+
 
 
 
@@ -393,16 +393,6 @@ Lubashev                Expires November 29, 2018               [Page 7]
 
 Internet-Draft                   quic-pr                        May 2018
 
-
-7.  IANA Considerations
-
-   This document has no actions for IANA.
-
-8.  Security Considerations
-
-   This document has no new security considerations.
-
-9.  Change Log
 
 9.1.  Since version 00
 
@@ -418,14 +408,14 @@ Internet-Draft                   quic-pr                        May 2018
       control calculation to use Exempt Stream Bytes value.
 
    -  Replaced the Min Stream Offset value with the existing values:
-      "min retransmittable offset" (for sender) and "current receive
+      "min retransmittable offset" (for sender) and "smallest receive
       offset" (for receiver).  (Section 2.3)
 
    -  Changed MIN_STREAM_DATA frame to be a receiver-transmitted frame.
 
    -  Added sender-transmitted EXPIRED_STREAM_DATA frame.  (Section 3)
 
-9.3.  Since version 01
+9.3.  Since version 02
 
    -  Significantly simplifed the proposal by treating the stream as a
       message stream, allowing for data offsets not to be preserved
@@ -439,6 +429,16 @@ Internet-Draft                   quic-pr                        May 2018
 
    -  Removed MIN_STREAM_DATA frame.
 
+10.  Acknowledgments
+
+   Many thanks to Mike Bishop, Ian Swett, and Subodh Iyengar for their
+   reviews, feedback, and ideas.  Thus draft would not happen without
+   their input.  Kudos to the QUIC working group for a mountain of
+   feedback on this draft and for diligently plowing through hard
+   problems, making thousands of big and small decisions, to make the
+   Internet better for everyone.
+
+
 
 
 
@@ -449,15 +449,6 @@ Lubashev                Expires November 29, 2018               [Page 8]
 
 Internet-Draft                   quic-pr                        May 2018
 
-
-10.  Acknowledgments
-
-   Many thanks to Mike Bishop, Ian Swett, and Subodh Iyengar for their
-   reviews, feedback, and ideas.  Thus draft would not happen without
-   their input.  Kudos to the QUIC working group for a mountain of
-   feedback on this draft and for diligently plowing through hard
-   problems, making thousands of big and small decisions, to make the
-   Internet better for everyone.
 
 11.  Normative References
 
@@ -487,6 +478,15 @@ Author's Address
    Akamai Technologies
 
    EMail: igorlord@alum.mit.edu
+
+
+
+
+
+
+
+
+
 
 
 
