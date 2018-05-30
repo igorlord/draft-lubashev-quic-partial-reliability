@@ -4,8 +4,8 @@
 
 QUIC                                                         I. Lubashev
 Internet-Draft                                       Akamai Technologies
-Intended status: Informational                              May 28, 2018
-Expires: November 29, 2018
+Intended status: Informational                              May 30, 2018
+Expires: December 1, 2018
 
 
               Partially Reliable Message Streams for QUIC
@@ -36,7 +36,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on November 29, 2018.
+   This Internet-Draft will expire on December 1, 2018.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Lubashev                Expires November 29, 2018               [Page 1]
+Lubashev                Expires December 1, 2018                [Page 1]
 
 Internet-Draft                   quic-pr                        May 2018
 
@@ -71,19 +71,24 @@ Table of Contents
            offset  . . . . . . . . . . . . . . . . . . . . . . . . .   3
    3.  EXPIRED_STREAM_DATA Frame . . . . . . . . . . . . . . . . . .   4
    4.  Sender Interface and Behavior . . . . . . . . . . . . . . . .   5
-     4.1.  Coalescing Minimum Retransmittable Offset Updates . . . .   5
-     4.2.  Translating Application Offsets to QUIC Offsets . . . . .   6
+     4.1.  Communicating Message Boundary  . . . . . . . . . . . . .   5
+     4.2.  Translating Application Offsets to QUIC Offsets . . . . .   5
+     4.3.  Sender Behavior . . . . . . . . . . . . . . . . . . . . .   5
+       4.3.1.  Coalescing Minimum Retransmittable Offset Updates . .   6
+       4.3.2.  Example . . . . . . . . . . . . . . . . . . . . . . .   6
    5.  Receiver Interface and Behavior . . . . . . . . . . . . . . .   7
-   6.  Retransmission of EXPIRED_STREAM_DATA . . . . . . . . . . . .   7
-   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   7
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   7
-   9.  Change Log  . . . . . . . . . . . . . . . . . . . . . . . . .   7
+   6.  Retransmission of EXPIRED_STREAM_DATA . . . . . . . . . . . .   8
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   8
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   8
+   9.  Change Log  . . . . . . . . . . . . . . . . . . . . . . . . .   8
      9.1.  Since version 00  . . . . . . . . . . . . . . . . . . . .   8
      9.2.  Since version 01  . . . . . . . . . . . . . . . . . . . .   8
      9.3.  Since version 02  . . . . . . . . . . . . . . . . . . . .   8
-   10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   8
-   11. Normative References  . . . . . . . . . . . . . . . . . . . .   9
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .   9
+   10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   9
+   11. References  . . . . . . . . . . . . . . . . . . . . . . . . .   9
+     11.1.  Normative References . . . . . . . . . . . . . . . . . .   9
+     11.2.  URIs . . . . . . . . . . . . . . . . . . . . . . . . . .   9
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  10
 
 1.  Notational Conventions
 
@@ -102,17 +107,17 @@ Table of Contents
    expire and lose their usefulness due to later events (time passing,
    newer messages, etc).
 
+
+
+Lubashev                Expires December 1, 2018                [Page 2]
+
+Internet-Draft                   quic-pr                        May 2018
+
+
    Examples of applications that can benefit from partially reliable
    streams are real time video (all prior data is to be expired when a
    new key frame is available) and data replication (expire previous
    updates, when a new update overwrites the data).
-
-
-
-Lubashev                Expires November 29, 2018               [Page 2]
-
-Internet-Draft                   quic-pr                        May 2018
-
 
    The content of this draft is intended for [I-D.ietf-quic-transport],
    [I-D.ietf-quic-recovery] and, [I-D.ietf-quic-applicability] as a QUIC
@@ -157,18 +162,17 @@ Internet-Draft                   quic-pr                        May 2018
    For fully reliable streams, the smallest unacknowledged data offset
    is treated by the sender to be the minimum retransmittable offset.
    Likewise, the smallest receive offset for a stream is the smallest
-   data offset that has not been received by the receiver.  Due to loss
-   and reordering, the smallest receive offset may be smaller than the
-   largest received offset.
 
 
 
-
-
-Lubashev                Expires November 29, 2018               [Page 3]
+Lubashev                Expires December 1, 2018                [Page 3]
 
 Internet-Draft                   quic-pr                        May 2018
 
+
+   data offset that has not been received by the receiver.  Due to loss
+   and reordering, the smallest receive offset may be smaller than the
+   largest received offset.
 
    Partially reliable streams allow the sender to advance its minimum
    retransmittable offset and notify the receiver to advance its
@@ -214,17 +218,18 @@ Internet-Draft                   quic-pr                        May 2018
    to be received out of order.  EXPIRED_STREAM_DATA frames that do not
    advance the smallest receive offset for the stream MUST be ignored.
 
-   It is possible for the smallest receive offset to become larger than
-   the largest received offset for the stream.  Receipt of an
-   EXPIRED_STREAM_DATA does not advance the largest received offset for
-   the stream.
 
 
 
-Lubashev                Expires November 29, 2018               [Page 4]
+Lubashev                Expires December 1, 2018                [Page 4]
 
 Internet-Draft                   quic-pr                        May 2018
 
+
+   It is possible for the smallest receive offset to become larger than
+   the largest received offset a the stream.  Receipt of an
+   EXPIRED_STREAM_DATA does not advance the largest received offset for
+   the stream.
 
 4.  Sender Interface and Behavior
 
@@ -236,12 +241,53 @@ Internet-Draft                   quic-pr                        May 2018
    keep track of the message boundaries and request expiration of data
    on a message boundary.
 
+4.1.  Communicating Message Boundary
+
+   To allow a sender application to expire stream data written to the
+   transport but never sent to the receiver, the sender transport needs
+   to create a gap between data previously sent on the stream and data
+   to be sent after the expiration point.  The gap ensures that the
+   receiver does not deliver subsequent octets to the application until
+   the receipt of the EXPIRED_STREAM_DATA frame, in case packets
+   containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame
+   are reordered.
+
+   To avoid complicated connection flow control accounting (see version
+   02 of this draft [1]), a single octet gap is used for communicating
+   the message boundary.  Sender's EXPIRED_STREAM_DATA frame extends the
+   minimum stream offset past that gap.  Upon receipt of the
+   EXPIRED_STREAM_DATA frame, the receiver is able to notify the
+   application of a gap, which allows the application to identify the
+   beginning of a new message.
+
+4.2.  Translating Application Offsets to QUIC Offsets
+
+   Since the QUIC library and the application need to communicate data
+   offsets (for example, for the purpose of updating the minimum
+   retransmittable stream offset), the QUIC library needs to translate
+   appliction offsets to QUIC offsets.  Depending on the richness of the
+   APIs exposed to the application, keeping a single difference between
+   the current application and QUIC offsets is likely to be sufficient.
+
+4.3.  Sender Behavior
+
+   This section discusses sender behavior in terms of QUIC offsets, and
+   the translation from applicatoin offsets (see Section 4.2) is
+   implicit.
+
+
+
+Lubashev                Expires December 1, 2018                [Page 5]
+
+Internet-Draft                   quic-pr                        May 2018
+
+
    When an application instructs its QUIC transport to advance the
    minimum retransmittable offset for a stream, and there is any
    unacknowledged data (including unsent data) at an offset smaller than
    the new minimum retransmittable offset, the sender SHOULD transmit an
    EXPIRED_STREAM_DATA frame (Section 3), except as provided for in
-   Section 4.1.
+   Section 4.3.1.
 
    -  When the new minimum retransmittable offset is less than or equal
       to the current send offset, the Minimum Stream Offset field in the
@@ -257,7 +303,7 @@ Internet-Draft                   quic-pr                        May 2018
       it may be possible for a minimum retransmittable offset to become
       larger than the current send offset for a stream.
 
-4.1.  Coalescing Minimum Retransmittable Offset Updates
+4.3.1.  Coalescing Minimum Retransmittable Offset Updates
 
    When an application instructs its QUIC transport to advance the
    minimum retransmittable offset for a stream, but the current send
@@ -274,33 +320,23 @@ Internet-Draft                   quic-pr                        May 2018
    its octets have been transmitted.  This allows the receiver to always
    ascertain the location of any gaps in messages it is receiving.
 
-
-
-
-Lubashev                Expires November 29, 2018               [Page 5]
-
-Internet-Draft                   quic-pr                        May 2018
-
-
-4.2.  Translating Application Offsets to QUIC Offsets
-
-   To allow a sender application to expire stream data written to the
-   transport but never sent to the receiver, the sender transport needs
-   to create a gap between data previously sent on the stream and data
-   to be sent after the expiration point.  A single octet gap is used
-   for this purpose.  Sender's EXPIRED_STREAM_DATA frame extends the
-   minimum stream offset past that gap.  The gap ensures that the
-   receiver does not deliver subsequent octets to the application until
-   the receipt of the EXPIRED_STREAM_DATA frame, in case packets
-   containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame
-   are reordered.  Upon receipt of the EXPIRED_STREAM_DATA frame, the
-   receiver is able to notify the application of a gap, which allows the
-   application to identify the beginning of a new message.
+4.3.2.  Example
 
    For example, an application wrote four 10-octet messages (A, B, C, D)
    to the transport, and the current send offset (the next offset to be
-   sent) is 12.  In this example, the upper-case letters indicate bytes
-   to be sent, while the lower-case letters indicate bytes already sent.
+   sent) is 12.  In this example, the upper-case indicates bytes to be
+   sent, while the lower-case indicates bytes already sent.
+
+
+
+
+
+
+
+Lubashev                Expires December 1, 2018                [Page 6]
+
+Internet-Draft                   quic-pr                        May 2018
+
 
     0                   1   s               2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -308,10 +344,10 @@ Internet-Draft                   quic-pr                        May 2018
    |a a a a a a a a a a b b B B B B B B B B C C C C C C C C C C D D ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-   When the application desires to expire the first two messages, it
-   requests the minimum retransmittable offset to be 20.  The transport
-   then sends an EXPIRED_STREAM_DATA frame with Minimum Stream Offset
-   field set to 13, and the subsequent STREAM frame would send message C
+   When the application desires to expire messages A and B, it requests
+   the minimum retransmittable offset to be 20.  The transport then
+   sends an EXPIRED_STREAM_DATA frame with Minimum Stream Offset field
+   set to 13, and the subsequent STREAM frame would send message C
    starting at stream offset 13.
 
     0                   1   s m             2                   3
@@ -331,20 +367,6 @@ Internet-Draft                   quic-pr                        May 2018
    |a a a a a a a a a a b b   D D D D D D D D D D
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-
-
-Lubashev                Expires November 29, 2018               [Page 6]
-
-Internet-Draft                   quic-pr                        May 2018
-
-
-   Since the QUIC library and the application need to communicate data
-   offsets (for example, for the purpose of updating the minimum
-   retransmittable stream offset), the QUIC library needs to translate
-   appliction offsets to QUIC offsets.  Depending on the richness of the
-   APIs exposed to the application, keeping a single difference between
-   the current application and QUIC offsets is likely to be sufficient.
-
 5.  Receiver Interface and Behavior
 
    Upon receipt of an EXPIRED_STREAM_DATA frame (Section 3), the
@@ -356,10 +378,21 @@ Internet-Draft                   quic-pr                        May 2018
    when the application observes a gap in the data stream, what follows
    the gap is a beginning of a new message.
 
-   It is recommended that a QUIC library API provides a way for a
+   It is recommended that a QUIC library API provides a way for the
    receiver application to learn of the presence of a gap in the data
    stream, indicating that the data that follows the gap is a beginning
    of a new message.
+
+
+
+
+
+
+
+Lubashev                Expires December 1, 2018                [Page 7]
+
+Internet-Draft                   quic-pr                        May 2018
+
 
 6.  Retransmission of EXPIRED_STREAM_DATA
 
@@ -381,18 +414,6 @@ Internet-Draft                   quic-pr                        May 2018
    This document has no new security considerations.
 
 9.  Change Log
-
-
-
-
-
-
-
-
-Lubashev                Expires November 29, 2018               [Page 7]
-
-Internet-Draft                   quic-pr                        May 2018
-
 
 9.1.  Since version 00
 
@@ -421,6 +442,14 @@ Internet-Draft                   quic-pr                        May 2018
       message stream, allowing for data offsets not to be preserved
       between the sender and the receiver.
 
+
+
+
+Lubashev                Expires December 1, 2018                [Page 8]
+
+Internet-Draft                   quic-pr                        May 2018
+
+
    -  Reverted to sender-only transport-level control of message
       expiration.
 
@@ -438,19 +467,9 @@ Internet-Draft                   quic-pr                        May 2018
    problems, making thousands of big and small decisions, to make the
    Internet better for everyone.
 
+11.  References
 
-
-
-
-
-
-
-Lubashev                Expires November 29, 2018               [Page 8]
-
-Internet-Draft                   quic-pr                        May 2018
-
-
-11.  Normative References
+11.1.  Normative References
 
    [I-D.ietf-quic-applicability]
               Kuehlewind, M. and B. Trammell, "Applicability of the QUIC
@@ -471,6 +490,21 @@ Internet-Draft                   quic-pr                        May 2018
               Requirement Levels", BCP 14, RFC 2119,
               DOI 10.17487/RFC2119, March 1997,
               <https://www.rfc-editor.org/info/rfc2119>.
+
+11.2.  URIs
+
+   [1] https://tools.ietf.org/html/draft-lubashev-quic-partial-
+       reliability-02
+
+
+
+
+
+
+Lubashev                Expires December 1, 2018                [Page 9]
+
+Internet-Draft                   quic-pr                        May 2018
+
 
 Author's Address
 
@@ -501,4 +535,26 @@ Author's Address
 
 
 
-Lubashev                Expires November 29, 2018               [Page 9]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lubashev                Expires December 1, 2018               [Page 10]
