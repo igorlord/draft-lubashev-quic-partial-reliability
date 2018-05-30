@@ -40,9 +40,9 @@ informative:
 This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial
 reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to
 give up on retransmitting older parts of a stream and to notify the receiver
-about this decision.  The content of this draft is intended for merging into
+about this decision.  The content of this draft is intended for merging into the
 QUIC transport, recovery, and applicability drafts as a negotiable extension
-and/or QUIC Version 2 transport feature.
+and/or a QUIC Version 2 transport feature.
 
 
 --- middle
@@ -58,16 +58,16 @@ interpreted as described in {{!RFC2119}}.
 Introduction     {#introduction}
 ============
 
-Some applications, especially applications with near real-time requirements,
-need transport that supports partially reliable streams -- streams that deliver
-bytes in order but allow for applicaiton-controlled gaps.  These applications
-communicate using application-specific messages that are serialized over QUIC
-streams.  Applications desire partially reliable streams when their messages
-expire and lose their usefulness due to later events (time passing, newer
-messages, etc).
+Some applications, especially applications with near-real-time requirements,
+need a transport that supports partially reliable streams -- streams that
+deliver bytes in order but allow for application-controlled gaps.  These
+applications communicate using application-specific messages that are serialized
+over QUIC streams.  Applications desire partially reliable streams when their
+messages expire and lose their usefulness due to later events (time passing,
+newer messages, etc).
 
 Examples of applications that can benefit from partially reliable streams are
-real time video (all prior data is to be expired when a new key frame is
+real-time video (all prior data is to be expired when a new key frame is
 available) and data replication (expire previous updates, when a new update
 overwrites the data).
 
@@ -80,17 +80,17 @@ Stream-per-Message Alternative
 
 It is possible to avoid the need for partially reliable streams by encoding one
 message per QUIC stream.  When a message expires, the sender can reset the
-stream, causing RST_STREAM frame to be transmitted, unless all data in the
-stream has already been fully acknowledged.  Likewise, the receiver can send
+stream, causing a RST_STREAM frame to be transmitted, unless all data in the
+stream has already been fully acknowledged.  Likewise, the receiver can send a
 STOP_SENDING frame to indicate its disinterest in the message.  The problem with
-this approach is that messages transmitted by the application typically belong
-to a message stream, and applications may need to support multiple concurrent
-message streams.  Hence, a message-per-stream approach requires each message to
-contain an extra header portion to associate the message with a logical
-application stream.  In case of short messages, this approach introduces a
-significant overhead due to STREAM frames and message headers. It also places
-the burden on the application to reorder data arriving on multiple QUIC streams.
-Furthermore, splitting each application stream into multiple QUIC streams
+this approach is that messages transmitted by the application are typically part
+of a sequence of related messages, and applications may need to support multiple
+concurrent sequences.  Hence, a message-per-stream approach requires each
+message to contain an extra header portion to permit reassembly of these
+sequences at the application layer.  In case of short messages, this approach
+introduces a significant overhead due to STREAM frames and message headers. It
+also places the burden on the application to reorder data arriving on multiple
+QUIC streams. Furthermore, splitting related data into multiple QUIC streams
 renders QUIC's per-stream flow control ineffective and requires an application
 to build its own.
 
@@ -98,7 +98,7 @@ to build its own.
 Partially Reliable Message Streams
 ----------------------------------
 
-The proposed single-stream mechanism keeps aplication messages arriving in order
+The proposed single-stream mechanism keeps application messages arriving in order
 on a single stream, while allowing the application to control message
 expiration.
 
@@ -150,7 +150,7 @@ The fields in the EXPIRED_STREAM_DATA frame are as follows:
 
 Stream ID:
 
-: The stream ID of the stream that is affected encoded as a variable-length
+: The stream ID of the stream that is affected, encoded as a variable-length
   integer.
 
 Minimum Stream Offset:
@@ -178,7 +178,7 @@ advance the largest received offset for the stream.
 Sender Interface and Behavior    {#sender-interface}
 =============================
 
-QUIC library interface needs provide a way for a sender to expire data
+A QUIC library interface needs provide a way for a sender to expire data
 previously written to the transport by updating the minimum retransmittable
 offset ({{offsets}}) for a stream.  A typical sender would call this API
 function whenever data previously enqueued for transmission expires, per
@@ -194,8 +194,8 @@ never sent to the receiver, the sender transport needs to create a gap between
 data previously sent on the stream and data to be sent after the expiration
 point.  The gap ensures that the receiver does not deliver subsequent octets to
 the application until the receipt of the EXPIRED_STREAM_DATA frame, in case
-packets containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame are
-reordered.
+packets containing the EXPIRED_STREAM_DATA frame and the subsequent STREAM frame
+are reordered.
 
 To avoid complicated connection flow control accounting (see [version 02 of this
 draft](https://tools.ietf.org/html/draft-lubashev-quic-partial-reliability-02)),
@@ -211,7 +211,7 @@ Translating Application Offsets to QUIC Offsets     {#translating-offsets}
 
 Since the QUIC library and the application need to communicate data offsets (for
 example, for the purpose of updating the minimum retransmittable stream offset),
-the QUIC library needs to translate appliction offsets to QUIC offsets.
+the QUIC library needs to translate application offsets to QUIC offsets.
 Depending on the richness of the APIs exposed to the application, keeping a
 single difference between the current application and QUIC offsets is likely to
 be sufficient.
@@ -221,14 +221,14 @@ Sender Behavior
 ---------------
 
 This section discusses sender behavior in terms of QUIC offsets, and the
-translation from applicatoin offsets (see {{translating-offsets}}) is implicit.
+translation from application offsets (see {{translating-offsets}}) is implicit.
 
 When an application instructs its QUIC transport to advance the minimum
 retransmittable offset for a stream, and there is any unacknowledged data
 (including unsent data) at an offset smaller than the new minimum
 retransmittable offset, the sender SHOULD transmit an EXPIRED_STREAM_DATA frame
 ({{frame-expired-stream-data}}), except as provided for in
-{{coalessed-updates}}.
+{{coalesced-updates}}.
 
 * When the new minimum retransmittable offset is less than or equal to the
   current send offset, the Minimum Stream Offset field in the
@@ -243,7 +243,7 @@ retransmittable offset, the sender SHOULD transmit an EXPIRED_STREAM_DATA frame
   current send offset for a stream.
 
 
-### Coalescing Minimum Retransmittable Offset Updates {#coalessed-updates}
+### Coalescing Minimum Retransmittable Offset Updates {#coalesced-updates}
 
 When an application instructs its QUIC transport to advance the minimum
 retransmittable offset for a stream, but the current send offset is not larger
