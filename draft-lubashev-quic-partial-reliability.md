@@ -171,7 +171,7 @@ order.  EXPIRED_STREAM_DATA frames that do not advance the smallest receive
 offset for the stream MUST be ignored.
 
 It is possible for the smallest receive offset to become larger than the largest
-received offset for the stream.  Receipt of an EXPIRED_STREAM_DATA does not
+received offset a the stream.  Receipt of an EXPIRED_STREAM_DATA does not
 advance the largest received offset for the stream.
 
 
@@ -184,6 +184,44 @@ offset ({{offsets}}) for a stream.  A typical sender would call this API
 function whenever data previously enqueued for transmission expires, per
 application semantics.  The sender would keep track of the message boundaries
 and request expiration of data on a message boundary.
+
+
+Communicating Message Boundary
+------------------------------
+
+To allow a sender application to expire stream data written to the transport but
+never sent to the receiver, the sender transport needs to create a gap between
+data previously sent on the stream and data to be sent after the expiration
+point.  The gap ensures that the receiver does not deliver subsequent octets to
+the application until the receipt of the EXPIRED_STREAM_DATA frame, in case
+packets containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame are
+reordered.
+
+To avoid complicated connection flow control accounting (see [version 02 of this
+draft](https://tools.ietf.org/html/draft-lubashev-quic-partial-reliability-02)),
+a single octet gap is used for communicating the message boundary.  Sender's
+EXPIRED_STREAM_DATA frame extends the minimum stream offset past that gap.  Upon
+receipt of the EXPIRED_STREAM_DATA frame, the receiver is able to notify the
+application of a gap, which allows the application to identify the beginning of
+a new message.
+
+
+Translating Application Offsets to QUIC Offsets     {#translating-offsets}
+-----------------------------------------------
+
+Since the QUIC library and the application need to communicate data offsets (for
+example, for the purpose of updating the minimum retransmittable stream offset),
+the QUIC library needs to translate appliction offsets to QUIC offsets.
+Depending on the richness of the APIs exposed to the application, keeping a
+single difference between the current application and QUIC offsets is likely to
+be sufficient.
+
+
+Sender Behavior
+---------------
+
+This section discusses sender behavior in terms of QUIC offsets, and the
+translation from applicatoin offsets (see {{translating-offsets}}) is implicit.
 
 When an application instructs its QUIC transport to advance the minimum
 retransmittable offset for a stream, and there is any unacknowledged data
@@ -205,8 +243,7 @@ retransmittable offset, the sender SHOULD transmit an EXPIRED_STREAM_DATA frame
   current send offset for a stream.
 
 
-Coalescing Minimum Retransmittable Offset Updates {#coalessed-updates}
--------------------------------------------------
+### Coalescing Minimum Retransmittable Offset Updates {#coalessed-updates}
 
 When an application instructs its QUIC transport to advance the minimum
 retransmittable offset for a stream, but the current send offset is not larger
@@ -223,25 +260,12 @@ transmitted.  This allows the receiver to always ascertain the location of any
 gaps in messages it is receiving.
 
 
-Translating Application Offsets to QUIC Offsets
------------------------------------------------
-
-To allow a sender application to expire stream data written to the transport but
-never sent to the receiver, the sender transport needs to create a gap between
-data previously sent on the stream and data to be sent after the expiration
-point.  A single octet gap is used for this purpose.  Sender's
-EXPIRED_STREAM_DATA frame extends the minimum stream offset past that gap.  The
-gap ensures that the receiver does not deliver subsequent octets to the
-application until the receipt of the EXPIRED_STREAM_DATA frame, in case packets
-containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame are
-reordered.  Upon receipt of the EXPIRED_STREAM_DATA frame, the receiver is able
-to notify the application of a gap, which allows the application to identify the
-beginning of a new message.
+### Example
 
 For example, an application wrote four 10-octet messages (A, B, C, D) to the
 transport, and the current send offset (the next offset to be sent) is 12.  In
-this example, the upper-case letters indicate bytes to be sent, while the
-lower-case letters indicate bytes already sent.
+this example, the upper-case indicates bytes to be sent, while the lower-case
+indicates bytes already sent.
 
 ~~~
  0                   1   s               2                   3
@@ -251,8 +275,8 @@ lower-case letters indicate bytes already sent.
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ~~~
 
-When the application desires to expire the first two messages, it requests the
-minimum retransmittable offset to be 20.  The transport then sends an
+When the application desires to expire messages A and B, it requests the minimum
+retransmittable offset to be 20.  The transport then sends an
 EXPIRED_STREAM_DATA frame with Minimum Stream Offset field set to 13, and the
 subsequent STREAM frame would send message C starting at stream offset 13.
 
@@ -278,14 +302,6 @@ stream offset 13.
 ~~~
 
 
-Since the QUIC library and the application need to communicate data offsets (for
-example, for the purpose of updating the minimum retransmittable stream offset),
-the QUIC library needs to translate appliction offsets to QUIC offsets.
-Depending on the richness of the APIs exposed to the application, keeping a
-single difference between the current application and QUIC offsets is likely to
-be sufficient.
-
-
 Receiver Interface and Behavior   {#receiver-interface}
 ===============================
 
@@ -297,7 +313,7 @@ possibly advancing the largest received offset for the stream.  Discarding such
 data ensures that when the application observes a gap in the data stream, what
 follows the gap is a beginning of a new message.
 
-It is recommended that a QUIC library API provides a way for a receiver
+It is recommended that a QUIC library API provides a way for the receiver
 application to learn of the presence of a gap in the data stream, indicating
 that the data that follows the gap is a beginning of a new message.
 
