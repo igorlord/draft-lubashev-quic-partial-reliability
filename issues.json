@@ -1,5 +1,58 @@
 [
 
+  {
+    "url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/issues/1",
+    "repository_url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability",
+    "labels_url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/issues/1/labels{/name}",
+    "comments_url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/issues/1/comments",
+    "events_url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/issues/1/events",
+    "html_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability/pull/1",
+    "id": 327935480,
+    "node_id": "MDExOlB1bGxSZXF1ZXN0MTkxNjA4MTg2",
+    "number": 1,
+    "title": "Minor editorial changes",
+    "user": {
+      "login": "MikeBishop",
+      "id": 4273797,
+      "node_id": "MDQ6VXNlcjQyNzM3OTc=",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/4273797?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MikeBishop",
+      "html_url": "https://github.com/MikeBishop",
+      "followers_url": "https://api.github.com/users/MikeBishop/followers",
+      "following_url": "https://api.github.com/users/MikeBishop/following{/other_user}",
+      "gists_url": "https://api.github.com/users/MikeBishop/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/MikeBishop/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/MikeBishop/subscriptions",
+      "organizations_url": "https://api.github.com/users/MikeBishop/orgs",
+      "repos_url": "https://api.github.com/users/MikeBishop/repos",
+      "events_url": "https://api.github.com/users/MikeBishop/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/MikeBishop/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "labels": [
 
+    ],
+    "state": "open",
+    "locked": false,
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "comments": 0,
+    "created_at": "2018-05-30T23:34:15Z",
+    "updated_at": "2018-05-30T23:34:15Z",
+    "closed_at": null,
+    "author_association": "FIRST_TIME_CONTRIBUTOR",
+    "pull_request": {
+      "url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/pulls/1",
+      "html_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability/pull/1",
+      "diff_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability/pull/1.diff",
+      "patch_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability/pull/1.patch"
+    },
+    "body": "Some small fixes; mostly typos, a few re-wordings.\r\n\r\nBiggest change is that to refer to a \"message stream\" separately from a QUIC stream carrying messages is pretty much inevitably confusing; I reworded that discussion to refer to a \"sequence of related messages.\""
+  }
 
 ]
