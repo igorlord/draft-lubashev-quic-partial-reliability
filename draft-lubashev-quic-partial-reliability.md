@@ -170,9 +170,10 @@ loss and reordering can cause EXPIRED_STREAM_DATA frames to be received out of
 order.  EXPIRED_STREAM_DATA frames that do not advance the smallest receive
 offset for the stream MUST be ignored.
 
-It is possible for the smallest receive offset to become larger than the largest
-received offset a the stream.  Receipt of an EXPIRED_STREAM_DATA does not
-advance the largest received offset for the stream.
+If the largest received offset is smaller than Minimum Stream Offset for the
+stream, it is advanced to Minimum Stream Offset minus 1.  It is possible for the
+smallest receive offset to become larger than the largest received offset a the
+stream.
 
 
 Sender Interface and Behavior    {#sender-interface}
@@ -307,11 +308,13 @@ Receiver Interface and Behavior   {#receiver-interface}
 
 Upon receipt of an EXPIRED_STREAM_DATA frame ({{frame-expired-stream-data}}),
 the receiver SHOULD assume that none of the data before the new smallest receive
-offset ({{offsets}}) will be retransmitted.  A receiver SHOULD discard any
-stream data received for an offset smaller than the new smallest receive offset,
-possibly advancing the largest received offset for the stream.  Discarding such
-data ensures that when the application observes a gap in the data stream, what
-follows the gap is a beginning of a new message.
+offset ({{offsets}}) will be retransmitted.
+
+The receiver SHOULD discard any stream data octets subsequently received for an
+offset smaller than the new smallest receive offset, possibly advancing the
+largest received offset for the stream.  Discarding such data ensures that when
+the application observes a gap in the data stream, what follows the gap is a
+beginning of a new message.
 
 It is recommended that a QUIC library API provides a way for the receiver
 application to learn of the presence of a gap in the data stream, indicating
@@ -383,6 +386,11 @@ Since version 02
   control accounting.
 
 - Removed MIN_STREAM_DATA frame.
+
+Since version 03
+----------------
+
+- Fixed receiver flow control accounting.
 
 
 Acknowledgments
