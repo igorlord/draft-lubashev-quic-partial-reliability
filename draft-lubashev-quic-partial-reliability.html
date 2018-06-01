@@ -16,7 +16,7 @@ body {
   font-size-adjust: 0.5;
   line-height: 24px;
   margin: 75px auto;
-  max-width: 724px;
+  max-width: 624px;
   padding: 0 5px;
 }
 
@@ -84,7 +84,7 @@ table.header td, table#rfc\.headerblock td {
 }
 
 samp, tt, code, pre {
-  font: 11pt consolas, monospace;
+  font: 15px Consolas, monospace;
   font-size-adjust: none;
 }
 pre {
@@ -184,7 +184,7 @@ ul.toc li {
   margin: 0;
 }
 
-@media screen and (min-width: 1024px) {
+@media screen and (min-width: 924px) {
   body {
     padding-right: 350px;
   }
@@ -192,7 +192,7 @@ ul.toc li {
     position: fixed;
     bottom: 0;
     right: 0;
-    right: calc(50vw - 550px);
+    right: calc(50vw - 500px);
     width: 300px;
     z-index: 1;
     overflow: auto;
@@ -296,6 +296,7 @@ ul.toc li {
 <link href="#rfc.section.9.1" rel="Chapter" title="9.1 Since version 00">
 <link href="#rfc.section.9.2" rel="Chapter" title="9.2 Since version 01">
 <link href="#rfc.section.9.3" rel="Chapter" title="9.3 Since version 02">
+<link href="#rfc.section.9.4" rel="Chapter" title="9.4 Since version 03">
 <link href="#rfc.section.10" rel="Chapter" title="10 Acknowledgments">
 <link href="#rfc.references" rel="Chapter" title="11 Normative References">
 <link href="#rfc.authors" rel="Chapter">
@@ -306,7 +307,7 @@ ul.toc li {
 
   <meta name="dct.creator" content="Lubashev, I." />
   <meta name="dct.identifier" content="urn:ietf:id:draft-lubashev-quic-partial-reliability-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2018-30" />
+  <meta name="dct.issued" scheme="ISO8601" content="2018-01" />
   <meta name="dct.abstract" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
   <meta name="description" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
 
@@ -327,10 +328,10 @@ ul.toc li {
 </tr>
 <tr>
 <td class="left">Intended status: Informational</td>
-<td class="right">May 30, 2018</td>
+<td class="right">June 1, 2018</td>
 </tr>
 <tr>
-<td class="left">Expires: December 1, 2018</td>
+<td class="left">Expires: December 3, 2018</td>
 <td class="right"></td>
 </tr>
 
@@ -347,7 +348,7 @@ ul.toc li {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at https://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on December 1, 2018.</p>
+<p>This Internet-Draft will expire on December 3, 2018.</p>
 <h1 id="rfc.copyrightnotice"><a href="#rfc.copyrightnotice">Copyright Notice</a></h1>
 <p>Copyright (c) 2018 IETF Trust and the persons identified as the document authors.  All rights reserved.</p>
 <p>This document is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents (https://trustee.ietf.org/license-info) in effect on the date of publication of this document.  Please review these documents carefully, as they describe your rights and restrictions with respect to this document.  Code Components extracted from this document must include Simplified BSD License text as described in Section 4.e of the Trust Legal Provisions and are provided without warranty as described in the Simplified BSD License.</p>
@@ -396,6 +397,8 @@ ul.toc li {
 <li>9.2.   <a href="#rfc.section.9.2">Since version 01</a>
 </li>
 <li>9.3.   <a href="#rfc.section.9.3">Since version 02</a>
+</li>
+<li>9.4.   <a href="#rfc.section.9.4">Since version 03</a>
 </li>
 </ul><li>10.   <a href="#rfc.section.10">Acknowledgments</a>
 </li>
@@ -459,7 +462,7 @@ ul.toc li {
 <p id="rfc.section.3.p.6">Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.</p>
 <p id="rfc.section.3.p.7">Upon receipt of an EXPIRED_STREAM_DATA frame, the receiver advances the smallest receive offset for the stream (<a href="#offsets" class="xref">Section 2.3</a>) to be the Minimum Stream Offset value.</p>
 <p id="rfc.section.3.p.8">The sender MUST NOT reduce the minimum retransmittable offset for a stream, but loss and reordering can cause EXPIRED_STREAM_DATA frames to be received out of order.  EXPIRED_STREAM_DATA frames that do not advance the smallest receive offset for the stream MUST be ignored.</p>
-<p id="rfc.section.3.p.9">It is possible for the smallest receive offset to become larger than the largest received offset a the stream.  Receipt of an EXPIRED_STREAM_DATA does not advance the largest received offset for the stream.</p>
+<p id="rfc.section.3.p.9">If the largest received offset is smaller than Minimum Stream Offset for the stream, it is advanced to Minimum Stream Offset minus 1.  It is possible for the smallest receive offset to become larger than the largest received offset a the stream.</p>
 <h1 id="rfc.section.4">
 <a href="#rfc.section.4">4.</a> <a href="#sender-interface" id="sender-interface">Sender Interface and Behavior</a>
 </h1>
@@ -519,8 +522,9 @@ ul.toc li {
 <h1 id="rfc.section.5">
 <a href="#rfc.section.5">5.</a> <a href="#receiver-interface" id="receiver-interface">Receiver Interface and Behavior</a>
 </h1>
-<p id="rfc.section.5.p.1">Upon receipt of an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>), the receiver SHOULD assume that none of the data before the new smallest receive offset (<a href="#offsets" class="xref">Section 2.3</a>) will be retransmitted.  A receiver SHOULD discard any stream data received for an offset smaller than the new smallest receive offset, possibly advancing the largest received offset for the stream.  Discarding such data ensures that when the application observes a gap in the data stream, what follows the gap is a beginning of a new message.</p>
-<p id="rfc.section.5.p.2">It is recommended that a QUIC library API provides a way for the receiver application to learn of the presence of a gap in the data stream, indicating that the data that follows the gap is a beginning of a new message.</p>
+<p id="rfc.section.5.p.1">Upon receipt of an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>), the receiver SHOULD assume that none of the data before the new smallest receive offset (<a href="#offsets" class="xref">Section 2.3</a>) will be retransmitted.</p>
+<p id="rfc.section.5.p.2">The receiver SHOULD discard any stream data octets subsequently received for an offset smaller than the new smallest receive offset, possibly advancing the largest received offset for the stream.  Discarding such data ensures that when the application observes a gap in the data stream, what follows the gap is a beginning of a new message.</p>
+<p id="rfc.section.5.p.3">It is recommended that a QUIC library API provides a way for the receiver application to learn of the presence of a gap in the data stream, indicating that the data that follows the gap is a beginning of a new message.</p>
 <h1 id="rfc.section.6">
 <a href="#rfc.section.6">6.</a> <a href="#retransmission" id="retransmission">Retransmission of EXPIRED_STREAM_DATA</a>
 </h1>
@@ -565,6 +569,12 @@ ul.toc li {
 <li>Removed the need for Exempt Stream Bytes and changes to connection flow control accounting.</li>
 <li>Removed MIN_STREAM_DATA frame.</li>
 </ul>
+<h1 id="rfc.section.9.4">
+<a href="#rfc.section.9.4">9.4.</a> <a href="#since-version-03" id="since-version-03">Since version 03</a>
+</h1>
+<p></p>
+
+<ul><li>Fixed receiver flow control accounting.</li></ul>
 <h1 id="rfc.section.10">
 <a href="#rfc.section.10">10.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a>
 </h1>
