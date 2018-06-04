@@ -34,7 +34,7 @@
     "labels": [
 
     ],
-    "state": "open",
+    "state": "closed",
     "locked": false,
     "assignee": null,
     "assignees": [
@@ -43,9 +43,9 @@
     "milestone": null,
     "comments": 0,
     "created_at": "2018-05-30T23:34:15Z",
-    "updated_at": "2018-05-30T23:34:15Z",
-    "closed_at": null,
-    "author_association": "FIRST_TIME_CONTRIBUTOR",
+    "updated_at": "2018-06-04T06:28:56Z",
+    "closed_at": "2018-06-04T06:28:55Z",
+    "author_association": "CONTRIBUTOR",
     "pull_request": {
       "url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/pulls/1",
       "html_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability/pull/1",

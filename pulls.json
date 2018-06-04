@@ -9,7 +9,7 @@
     "patch_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability/pull/1.patch",
     "issue_url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/issues/1",
     "number": 1,
-    "state": "open",
+    "state": "closed",
     "locked": false,
     "title": "Minor editorial changes",
     "user": {
@@ -34,10 +34,10 @@
     },
     "body": "Some small fixes; mostly typos, a few re-wordings.\r\n\r\nBiggest change is that to refer to a \"message stream\" separately from a QUIC stream carrying messages is pretty much inevitably confusing; I reworded that discussion to refer to a \"sequence of related messages.\"",
     "created_at": "2018-05-30T23:34:15Z",
-    "updated_at": "2018-05-30T23:34:15Z",
-    "closed_at": null,
-    "merged_at": null,
-    "merge_commit_sha": "3f89f00d256c320ab6c90d422044121160134e46",
+    "updated_at": "2018-06-04T06:28:56Z",
+    "closed_at": "2018-06-04T06:28:55Z",
+    "merged_at": "2018-06-04T06:28:55Z",
+    "merge_commit_sha": "d6b1f49e47e2ca7162b35fb6561be5c28e968523",
     "assignee": null,
     "assignees": [
 
@@ -272,14 +272,14 @@
         "releases_url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/releases{/id}",
         "deployments_url": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/deployments",
         "created_at": "2017-12-04T22:56:44Z",
-        "updated_at": "2018-06-01T00:35:23Z",
-        "pushed_at": "2018-06-01T00:35:41Z",
+        "updated_at": "2018-06-04T06:28:57Z",
+        "pushed_at": "2018-06-04T06:29:15Z",
         "git_url": "git://github.com/igorlord/draft-lubashev-quic-partial-reliability.git",
         "ssh_url": "git@github.com:igorlord/draft-lubashev-quic-partial-reliability.git",
         "clone_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability.git",
         "svn_url": "https://github.com/igorlord/draft-lubashev-quic-partial-reliability",
         "homepage": null,
-        "size": 183,
+        "size": 196,
         "stargazers_count": 0,
         "watchers_count": 0,
         "language": "Makefile",
@@ -291,7 +291,7 @@
         "forks_count": 1,
         "mirror_url": null,
         "archived": false,
-        "open_issues_count": 1,
+        "open_issues_count": 0,
         "license": {
           "key": "other",
           "name": "Other",
@@ -300,7 +300,7 @@
           "node_id": "MDc6TGljZW5zZTA="
         },
         "forks": 1,
-        "open_issues": 1,
+        "open_issues": 0,
         "watchers": 0,
         "default_branch": "master"
       }
@@ -331,7 +331,7 @@
         "href": "https://api.github.com/repos/igorlord/draft-lubashev-quic-partial-reliability/statuses/a4981c87114d778a43fd148913ba9bc397c47293"
       }
     },
-    "author_association": "FIRST_TIME_CONTRIBUTOR"
+    "author_association": "CONTRIBUTOR"
   }
 
 ]
