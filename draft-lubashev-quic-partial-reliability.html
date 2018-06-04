@@ -307,9 +307,9 @@ ul.toc li {
 
   <meta name="dct.creator" content="Lubashev, I." />
   <meta name="dct.identifier" content="urn:ietf:id:draft-lubashev-quic-partial-reliability-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2018-01" />
-  <meta name="dct.abstract" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
-  <meta name="description" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature." />
+  <meta name="dct.issued" scheme="ISO8601" content="2018-04" />
+  <meta name="dct.abstract" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into the QUIC transport, recovery, and applicability drafts as a negotiable extension and/or a QUIC Version 2 transport feature." />
+  <meta name="description" content="This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into the QUIC transport, recovery, and applicability drafts as a negotiable extension and/or a QUIC Version 2 transport feature." />
 
 </head>
 
@@ -328,10 +328,10 @@ ul.toc li {
 </tr>
 <tr>
 <td class="left">Intended status: Informational</td>
-<td class="right">June 1, 2018</td>
+<td class="right">June 4, 2018</td>
 </tr>
 <tr>
-<td class="left">Expires: December 3, 2018</td>
+<td class="left">Expires: December 6, 2018</td>
 <td class="right"></td>
 </tr>
 
@@ -343,12 +343,12 @@ ul.toc li {
   <span class="filename">draft-lubashev-quic-partial-reliability-latest</span></p>
   
   <h1 id="rfc.abstract"><a href="#rfc.abstract">Abstract</a></h1>
-<p>This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into QUIC transport, recovery, and applicability drafts as a negotiable extension and/or QUIC Version 2 transport feature.</p>
+<p>This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to give up on retransmitting older parts of a stream and to notify the receiver about this decision.  The content of this draft is intended for merging into the QUIC transport, recovery, and applicability drafts as a negotiable extension and/or a QUIC Version 2 transport feature.</p>
 <h1 id="rfc.status"><a href="#rfc.status">Status of This Memo</a></h1>
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at https://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on December 3, 2018.</p>
+<p>This Internet-Draft will expire on December 6, 2018.</p>
 <h1 id="rfc.copyrightnotice"><a href="#rfc.copyrightnotice">Copyright Notice</a></h1>
 <p>Copyright (c) 2018 IETF Trust and the persons identified as the document authors.  All rights reserved.</p>
 <p>This document is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents (https://trustee.ietf.org/license-info) in effect on the date of publication of this document.  Please review these documents carefully, as they describe your rights and restrictions with respect to this document.  Code Components extracted from this document must include Simplified BSD License text as described in Section 4.e of the Trust Legal Provisions and are provided without warranty as described in the Simplified BSD License.</p>
@@ -417,17 +417,17 @@ ul.toc li {
 <h1 id="rfc.section.2">
 <a href="#rfc.section.2">2.</a> <a href="#introduction" id="introduction">Introduction</a>
 </h1>
-<p id="rfc.section.2.p.1">Some applications, especially applications with near real-time requirements, need transport that supports partially reliable streams &#8211; streams that deliver bytes in order but allow for applicaiton-controlled gaps.  These applications communicate using application-specific messages that are serialized over QUIC streams.  Applications desire partially reliable streams when their messages expire and lose their usefulness due to later events (time passing, newer messages, etc).</p>
-<p id="rfc.section.2.p.2">Examples of applications that can benefit from partially reliable streams are real time video (all prior data is to be expired when a new key frame is available) and data replication (expire previous updates, when a new update overwrites the data).</p>
+<p id="rfc.section.2.p.1">Some applications, especially applications with near-real-time requirements, need a transport that supports partially reliable streams &#8211; streams that deliver bytes in order but allow for application-controlled gaps.  These applications communicate using application-specific messages that are serialized over QUIC streams.  Applications desire partially reliable streams when their messages expire and lose their usefulness due to later events (time passing, newer messages, etc).</p>
+<p id="rfc.section.2.p.2">Examples of applications that can benefit from partially reliable streams are real-time video (all prior data is to be expired when a new key frame is available) and data replication (expire previous updates, when a new update overwrites the data).</p>
 <p id="rfc.section.2.p.3">The content of this draft is intended for <a href="#I-D.ietf-quic-transport" class="xref">[I-D.ietf-quic-transport]</a>, <a href="#I-D.ietf-quic-recovery" class="xref">[I-D.ietf-quic-recovery]</a> and, <a href="#I-D.ietf-quic-applicability" class="xref">[I-D.ietf-quic-applicability]</a> as a QUIC extension and/or QUIC Version 2.</p>
 <h1 id="rfc.section.2.1">
 <a href="#rfc.section.2.1">2.1.</a> <a href="#stream-per-message-alternative" id="stream-per-message-alternative">Stream-per-Message Alternative</a>
 </h1>
-<p id="rfc.section.2.1.p.1">It is possible to avoid the need for partially reliable streams by encoding one message per QUIC stream.  When a message expires, the sender can reset the stream, causing RST_STREAM frame to be transmitted, unless all data in the stream has already been fully acknowledged.  Likewise, the receiver can send STOP_SENDING frame to indicate its disinterest in the message.  The problem with this approach is that messages transmitted by the application typically belong to a message stream, and applications may need to support multiple concurrent message streams.  Hence, a message-per-stream approach requires each message to contain an extra header portion to associate the message with a logical application stream.  In case of short messages, this approach introduces a significant overhead due to STREAM frames and message headers. It also places the burden on the application to reorder data arriving on multiple QUIC streams.  Furthermore, splitting each application stream into multiple QUIC streams renders QUIC&#8217;s per-stream flow control ineffective and requires an application to build its own.</p>
+<p id="rfc.section.2.1.p.1">It is possible to avoid the need for partially reliable streams by encoding one message per QUIC stream.  When a message expires, the sender can reset the stream, causing a RST_STREAM frame to be transmitted, unless all data in the stream has already been fully acknowledged.  Likewise, the receiver can send a STOP_SENDING frame to indicate its disinterest in the message.  The problem with this approach is that messages transmitted by the application are typically part of a sequence of related messages, and applications may need to support multiple concurrent sequences.  Hence, a message-per-stream approach requires each message to contain an extra header portion to permit reassembly of these sequences at the application layer.  In case of short messages, this approach introduces a significant overhead due to STREAM frames and message headers. It also places the burden on the application to reorder data arriving on multiple QUIC streams. Furthermore, splitting related data into multiple QUIC streams renders QUIC&#8217;s per-stream flow control ineffective and requires an application to build its own.</p>
 <h1 id="rfc.section.2.2">
 <a href="#rfc.section.2.2">2.2.</a> <a href="#partially-reliable-message-streams" id="partially-reliable-message-streams">Partially Reliable Message Streams</a>
 </h1>
-<p id="rfc.section.2.2.p.1">The proposed single-stream mechanism keeps aplication messages arriving in order on a single stream, while allowing the application to control message expiration.</p>
+<p id="rfc.section.2.2.p.1">The proposed single-stream mechanism keeps application messages arriving in order on a single stream, while allowing the application to control message expiration.</p>
 <p id="rfc.section.2.2.p.2">The key to partially reliabile message streams is notifying the receiver about data that will not be retransmitted and ensuring that the receiver can identify the beginning of each new message.</p>
 <p id="rfc.section.2.2.p.3">It is important to note that the proposed protocol does not guarantee that data is read by the receiver application at the stream offsets written to by the sender application.</p>
 <h1 id="rfc.section.2.3">
@@ -455,7 +455,7 @@ ul.toc li {
 
 <dl>
 <dt>Stream ID:</dt>
-<dd style="margin-left: 8">The stream ID of the stream that is affected encoded as a variable-length integer.</dd>
+<dd style="margin-left: 8">The stream ID of the stream that is affected, encoded as a variable-length integer.</dd>
 <dt>Minimum Stream Offset:</dt>
 <dd style="margin-left: 8">A variable-length integer indicating the minimum offset of the stream data that will sent (or re-transmitted) on the identified stream, in units of octets.</dd>
 </dl>
@@ -466,21 +466,21 @@ ul.toc li {
 <h1 id="rfc.section.4">
 <a href="#rfc.section.4">4.</a> <a href="#sender-interface" id="sender-interface">Sender Interface and Behavior</a>
 </h1>
-<p id="rfc.section.4.p.1">QUIC library interface needs provide a way for a sender to expire data previously written to the transport by updating the minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) for a stream.  A typical sender would call this API function whenever data previously enqueued for transmission expires, per application semantics.  The sender would keep track of the message boundaries and request expiration of data on a message boundary.</p>
+<p id="rfc.section.4.p.1">A QUIC library interface needs provide a way for a sender to expire data previously written to the transport by updating the minimum retransmittable offset (<a href="#offsets" class="xref">Section 2.3</a>) for a stream.  A typical sender would call this API function whenever data previously enqueued for transmission expires, per application semantics.  The sender would keep track of the message boundaries and request expiration of data on a message boundary.</p>
 <h1 id="rfc.section.4.1">
 <a href="#rfc.section.4.1">4.1.</a> <a href="#communicating-message-boundary" id="communicating-message-boundary">Communicating Message Boundary</a>
 </h1>
-<p id="rfc.section.4.1.p.1">To allow a sender application to expire stream data written to the transport but never sent to the receiver, the sender transport needs to create a gap between data previously sent on the stream and data to be sent after the expiration point.  The gap ensures that the receiver does not deliver subsequent octets to the application until the receipt of the EXPIRED_STREAM_DATA frame, in case packets containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame are reordered.</p>
+<p id="rfc.section.4.1.p.1">To allow a sender application to expire stream data written to the transport but never sent to the receiver, the sender transport needs to create a gap between data previously sent on the stream and data to be sent after the expiration point.  The gap ensures that the receiver does not deliver subsequent octets to the application until the receipt of the EXPIRED_STREAM_DATA frame, in case packets containing the EXPIRED_STREAM_DATA frame and the subsequent STREAM frame are reordered.</p>
 <p id="rfc.section.4.1.p.2">To avoid complicated connection flow control accounting (see <a href="https://tools.ietf.org/html/draft-lubashev-quic-partial-reliability-02">version 02 of this draft</a>), a single octet gap is used for communicating the message boundary.  Sender&#8217;s EXPIRED_STREAM_DATA frame extends the minimum stream offset past that gap.  Upon receipt of the EXPIRED_STREAM_DATA frame, the receiver is able to notify the application of a gap, which allows the application to identify the beginning of a new message.</p>
 <h1 id="rfc.section.4.2">
 <a href="#rfc.section.4.2">4.2.</a> <a href="#translating-offsets" id="translating-offsets">Translating Application Offsets to QUIC Offsets</a>
 </h1>
-<p id="rfc.section.4.2.p.1">Since the QUIC library and the application need to communicate data offsets (for example, for the purpose of updating the minimum retransmittable stream offset), the QUIC library needs to translate appliction offsets to QUIC offsets.  Depending on the richness of the APIs exposed to the application, keeping a single difference between the current application and QUIC offsets is likely to be sufficient.</p>
+<p id="rfc.section.4.2.p.1">Since the QUIC library and the application need to communicate data offsets (for example, for the purpose of updating the minimum retransmittable stream offset), the QUIC library needs to translate application offsets to QUIC offsets.  Depending on the richness of the APIs exposed to the application, keeping a single difference between the current application and QUIC offsets is likely to be sufficient.</p>
 <h1 id="rfc.section.4.3">
 <a href="#rfc.section.4.3">4.3.</a> <a href="#sender-behavior" id="sender-behavior">Sender Behavior</a>
 </h1>
-<p id="rfc.section.4.3.p.1">This section discusses sender behavior in terms of QUIC offsets, and the translation from applicatoin offsets (see <a href="#translating-offsets" class="xref">Section 4.2</a>) is implicit.</p>
-<p id="rfc.section.4.3.p.2">When an application instructs its QUIC transport to advance the minimum retransmittable offset for a stream, and there is any unacknowledged data (including unsent data) at an offset smaller than the new minimum retransmittable offset, the sender SHOULD transmit an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>), except as provided for in <a href="#coalessed-updates" class="xref">Section 4.3.1</a>.</p>
+<p id="rfc.section.4.3.p.1">This section discusses sender behavior in terms of QUIC offsets, and the translation from application offsets (see <a href="#translating-offsets" class="xref">Section 4.2</a>) is implicit.</p>
+<p id="rfc.section.4.3.p.2">When an application instructs its QUIC transport to advance the minimum retransmittable offset for a stream, and there is any unacknowledged data (including unsent data) at an offset smaller than the new minimum retransmittable offset, the sender SHOULD transmit an EXPIRED_STREAM_DATA frame (<a href="#frame-expired-stream-data" class="xref">Section 3</a>), except as provided for in <a href="#coalesced-updates" class="xref">Section 4.3.1</a>.</p>
 <p></p>
 
 <ul>
@@ -488,7 +488,7 @@ ul.toc li {
 <li>When the new minimum retransmittable offset is larger the current send offset, the Minimum Stream Offset field in the EXPIRED_STREAM_DATA frame is set to the current send offset plus 1, and stream data starting at the new minimum retransmittable offset is henceforth sent starting at the current send offset plus 1 (which becomes the new minimum retransmittable offset).  Hence, it may be possible for a minimum retransmittable offset to become larger than the current send offset for a stream.</li>
 </ul>
 <h1 id="rfc.section.4.3.1">
-<a href="#rfc.section.4.3.1">4.3.1.</a> <a href="#coalessed-updates" id="coalessed-updates">Coalescing Minimum Retransmittable Offset Updates</a>
+<a href="#rfc.section.4.3.1">4.3.1.</a> <a href="#coalesced-updates" id="coalesced-updates">Coalescing Minimum Retransmittable Offset Updates</a>
 </h1>
 <p id="rfc.section.4.3.1.p.1">When an application instructs its QUIC transport to advance the minimum retransmittable offset for a stream, but the current send offset is not larger than the minimum retransmittable offset specified in the <em>previous</em> call to this API function, the current stream offset is not advanced and an EXPIRED_STREAM_DATA frame is not sent.  Stream data starting at the requested minimum retransmittable offset is henceforth sent starting at the previous minimum retransmittable offset (which remains the minimum retransmittable offset for the stream).</p>
 <p id="rfc.section.4.3.1.p.2">Note that the coalescing rule does not apply (the EXPIRED_STREAM_DATA frame <em>is</em> sent) if the very first message has expired before any of its octets have been transmitted.  This allows the receiver to always ascertain the location of any gaps in messages it is receiving.</p>

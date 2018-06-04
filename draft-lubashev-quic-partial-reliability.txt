@@ -4,8 +4,8 @@
 
 QUIC                                                         I. Lubashev
 Internet-Draft                                       Akamai Technologies
-Intended status: Informational                              June 1, 2018
-Expires: December 3, 2018
+Intended status: Informational                              June 4, 2018
+Expires: December 6, 2018
 
 
               Partially Reliable Message Streams for QUIC
@@ -17,9 +17,9 @@ Abstract
    partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame
    allows a sender to give up on retransmitting older parts of a stream
    and to notify the receiver about this decision.  The content of this
-   draft is intended for merging into QUIC transport, recovery, and
-   applicability drafts as a negotiable extension and/or QUIC Version 2
-   transport feature.
+   draft is intended for merging into the QUIC transport, recovery, and
+   applicability drafts as a negotiable extension and/or a QUIC Version
+   2 transport feature.
 
 Status of This Memo
 
@@ -36,7 +36,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on December 3, 2018.
+   This Internet-Draft will expire on December 6, 2018.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Lubashev                Expires December 3, 2018                [Page 1]
+Lubashev                Expires December 6, 2018                [Page 1]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -99,17 +99,17 @@ Table of Contents
 
 2.  Introduction
 
-   Some applications, especially applications with near real-time
-   requirements, need transport that supports partially reliable streams
-   - streams that deliver bytes in order but allow for applicaiton-
-   controlled gaps.  These applications communicate using application-
-   specific messages that are serialized over QUIC streams.
+   Some applications, especially applications with near-real-time
+   requirements, need a transport that supports partially reliable
+   streams - streams that deliver bytes in order but allow for
+   application-controlled gaps.  These applications communicate using
+   application-specific messages that are serialized over QUIC streams.
    Applications desire partially reliable streams when their messages
 
 
 
 
-Lubashev                Expires December 3, 2018                [Page 2]
+Lubashev                Expires December 6, 2018                [Page 2]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -118,7 +118,7 @@ Internet-Draft                   quic-pr                       June 2018
    newer messages, etc).
 
    Examples of applications that can benefit from partially reliable
-   streams are real time video (all prior data is to be expired when a
+   streams are real-time video (all prior data is to be expired when a
    new key frame is available) and data replication (expire previous
    updates, when a new update overwrites the data).
 
@@ -130,25 +130,25 @@ Internet-Draft                   quic-pr                       June 2018
 
    It is possible to avoid the need for partially reliable streams by
    encoding one message per QUIC stream.  When a message expires, the
-   sender can reset the stream, causing RST_STREAM frame to be
+   sender can reset the stream, causing a RST_STREAM frame to be
    transmitted, unless all data in the stream has already been fully
-   acknowledged.  Likewise, the receiver can send STOP_SENDING frame to
-   indicate its disinterest in the message.  The problem with this
-   approach is that messages transmitted by the application typically
-   belong to a message stream, and applications may need to support
-   multiple concurrent message streams.  Hence, a message-per-stream
-   approach requires each message to contain an extra header portion to
-   associate the message with a logical application stream.  In case of
-   short messages, this approach introduces a significant overhead due
-   to STREAM frames and message headers.  It also places the burden on
-   the application to reorder data arriving on multiple QUIC streams.
-   Furthermore, splitting each application stream into multiple QUIC
-   streams renders QUIC's per-stream flow control ineffective and
-   requires an application to build its own.
+   acknowledged.  Likewise, the receiver can send a STOP_SENDING frame
+   to indicate its disinterest in the message.  The problem with this
+   approach is that messages transmitted by the application are
+   typically part of a sequence of related messages, and applications
+   may need to support multiple concurrent sequences.  Hence, a message-
+   per-stream approach requires each message to contain an extra header
+   portion to permit reassembly of these sequences at the application
+   layer.  In case of short messages, this approach introduces a
+   significant overhead due to STREAM frames and message headers.  It
+   also places the burden on the application to reorder data arriving on
+   multiple QUIC streams.  Furthermore, splitting related data into
+   multiple QUIC streams renders QUIC's per-stream flow control
+   ineffective and requires an application to build its own.
 
 2.2.  Partially Reliable Message Streams
 
-   The proposed single-stream mechanism keeps aplication messages
+   The proposed single-stream mechanism keeps application messages
    arriving in order on a single stream, while allowing the application
    to control message expiration.
 
@@ -165,7 +165,7 @@ Internet-Draft                   quic-pr                       June 2018
 
 
 
-Lubashev                Expires December 3, 2018                [Page 3]
+Lubashev                Expires December 6, 2018                [Page 3]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -205,8 +205,8 @@ Internet-Draft                   quic-pr                       June 2018
 
    The fields in the EXPIRED_STREAM_DATA frame are as follows:
 
-   Stream ID:  The stream ID of the stream that is affected encoded as a
-      variable-length integer.
+   Stream ID:  The stream ID of the stream that is affected, encoded as
+      a variable-length integer.
 
    Minimum Stream Offset:  A variable-length integer indicating the
       minimum offset of the stream data that will sent (or re-
@@ -221,7 +221,7 @@ Internet-Draft                   quic-pr                       June 2018
 
 
 
-Lubashev                Expires December 3, 2018                [Page 4]
+Lubashev                Expires December 6, 2018                [Page 4]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -238,7 +238,7 @@ Internet-Draft                   quic-pr                       June 2018
 
 4.  Sender Interface and Behavior
 
-   QUIC library interface needs provide a way for a sender to expire
+   A QUIC library interface needs provide a way for a sender to expire
    data previously written to the transport by updating the minimum
    retransmittable offset (Section 2.3) for a stream.  A typical sender
    would call this API function whenever data previously enqueued for
@@ -254,8 +254,8 @@ Internet-Draft                   quic-pr                       June 2018
    to be sent after the expiration point.  The gap ensures that the
    receiver does not deliver subsequent octets to the application until
    the receipt of the EXPIRED_STREAM_DATA frame, in case packets
-   containing the EXPIRED_STREAM_DATA frame and subsequent STREAM frame
-   are reordered.
+   containing the EXPIRED_STREAM_DATA frame and the subsequent STREAM
+   frame are reordered.
 
    To avoid complicated connection flow control accounting (see version
    02 of this draft [1]), a single octet gap is used for communicating
@@ -270,14 +270,14 @@ Internet-Draft                   quic-pr                       June 2018
    Since the QUIC library and the application need to communicate data
    offsets (for example, for the purpose of updating the minimum
    retransmittable stream offset), the QUIC library needs to translate
-   appliction offsets to QUIC offsets.  Depending on the richness of the
-   APIs exposed to the application, keeping a single difference between
-   the current application and QUIC offsets is likely to be sufficient.
+   application offsets to QUIC offsets.  Depending on the richness of
+   the APIs exposed to the application, keeping a single difference
+   between the current application and QUIC offsets is likely to be
+   sufficient.
 
 
 
-
-Lubashev                Expires December 3, 2018                [Page 5]
+Lubashev                Expires December 6, 2018                [Page 5]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -285,7 +285,7 @@ Internet-Draft                   quic-pr                       June 2018
 4.3.  Sender Behavior
 
    This section discusses sender behavior in terms of QUIC offsets, and
-   the translation from applicatoin offsets (see Section 4.2) is
+   the translation from application offsets (see Section 4.2) is
    implicit.
 
    When an application instructs its QUIC transport to advance the
@@ -333,7 +333,7 @@ Internet-Draft                   quic-pr                       June 2018
 
 
 
-Lubashev                Expires December 3, 2018                [Page 6]
+Lubashev                Expires December 6, 2018                [Page 6]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -389,7 +389,7 @@ Internet-Draft                   quic-pr                       June 2018
 
 
 
-Lubashev                Expires December 3, 2018                [Page 7]
+Lubashev                Expires December 6, 2018                [Page 7]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -445,7 +445,7 @@ Internet-Draft                   quic-pr                       June 2018
 
 
 
-Lubashev                Expires December 3, 2018                [Page 8]
+Lubashev                Expires December 6, 2018                [Page 8]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -501,7 +501,7 @@ Internet-Draft                   quic-pr                       June 2018
 
 
 
-Lubashev                Expires December 3, 2018                [Page 9]
+Lubashev                Expires December 6, 2018                [Page 9]
 
 Internet-Draft                   quic-pr                       June 2018
 
@@ -557,4 +557,4 @@ Author's Address
 
 
 
-Lubashev                Expires December 3, 2018               [Page 10]
+Lubashev                Expires December 6, 2018               [Page 10]
