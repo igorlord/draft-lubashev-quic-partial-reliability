@@ -1,5 +1,5 @@
 ---
-title: Partially Reliable Message Streams for QUIC
+title: Partially Reliable Streams for QUIC
 abbrev: quic-pr
 docname: draft-lubashev-quic-partial-reliability-latest
 date: {DATE}
@@ -37,12 +37,13 @@ informative:
 
 --- abstract
 
-This memo introduces a new EXPIRED_STREAM_DATA frame to enable partial
-reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a sender to
-give up on retransmitting older parts of a stream and to notify the receiver
-about this decision.  The content of this draft is intended for merging into the
-QUIC transport, recovery, and applicability drafts as a negotiable extension
-and/or a QUIC Version 2 transport feature.
+This memo introduces MIN_STREAM_DATA and EXPIRED_STREAM_DATA frames to enable
+partial reliability for QUIC streams.  The EXPIRED_STREAM_DATA frame allows a
+sender to give up on retransmitting older parts of a stream and to notify the
+receiver about this decision. The MIN_STREAM_DATA frame allows a receiver to
+express its disinterest in older parts of a stream.  The content of this draft
+is intended for merging into QUIC transport, recovery, and applicability drafts
+as a negotiable extension and/or QUIC Version 2 transport feature.
 
 
 --- middle
@@ -58,16 +59,16 @@ interpreted as described in {{!RFC2119}}.
 Introduction     {#introduction}
 ============
 
-Some applications, especially applications with near-real-time requirements,
-need a transport that supports partially reliable streams -- streams that
-deliver bytes in order but allow for application-controlled gaps.  These
-applications communicate using application-specific messages that are serialized
-over QUIC streams.  Applications desire partially reliable streams when their
-messages expire and lose their usefulness due to later events (time passing,
-newer messages, etc).
+Some applications, especially applications with near real-time requirements,
+need transport that supports partially reliable streams -- streams that deliver
+bytes in order but allow for applicaiton-controlled gaps.  These applications
+communicate using application-specific messages that are serialized over QUIC
+streams.  Applications desire partially reliable streams when their messages
+expire and lose their usefulness due to later events (time passing, newer
+messages, etc).
 
 Examples of applications that can benefit from partially reliable streams are
-real-time video (all prior data is to be expired when a new key frame is
+real time video (all prior data is to be expired when a new key frame is
 available) and data replication (expire previous updates, when a new update
 overwrites the data).
 
@@ -80,59 +81,177 @@ Stream-per-Message Alternative
 
 It is possible to avoid the need for partially reliable streams by encoding one
 message per QUIC stream.  When a message expires, the sender can reset the
-stream, causing a RST_STREAM frame to be transmitted, unless all data in the
-stream has already been fully acknowledged.  Likewise, the receiver can send a
+stream, causing RST_STREAM frame to be transmitted, unless all data in the
+stream has already been fully acknowledged.  Likewise, the receiver can send
 STOP_SENDING frame to indicate its disinterest in the message.  The problem with
-this approach is that messages transmitted by the application are typically part
-of a sequence of related messages, and applications may need to support multiple
-concurrent sequences.  Hence, a message-per-stream approach requires each
-message to contain an extra header portion to permit reassembly of these
-sequences at the application layer.  In case of short messages, this approach
-introduces a significant overhead due to STREAM frames and message headers. It
-also places the burden on the application to reorder data arriving on multiple
-QUIC streams. Furthermore, splitting related data into multiple QUIC streams
+this approach is that messages transmitted by the application typically belong
+to a message stream, and applications may need to support multiple concurrent
+message streams.  Hence, a message-per-stream approach requires each message to
+contain an extra header portion to associate the message with a logical
+application stream.  In case of short messages, this approach introduces a
+significant overhead due to STREAM frames and message headers. It also places
+the burden on the application to reorder data arriving on multiple QUIC streams.
+Furthermore, splitting each application stream into multiple QUIC streams
 renders QUIC's per-stream flow control ineffective and requires an application
 to build its own.
 
 
-Partially Reliable Message Streams
-----------------------------------
+Partially Reliable Streams
+--------------------------
 
-The proposed single-stream mechanism keeps application messages arriving in order
+The proposed single-stream mechanism keeps aplication messages arriving in order
 on a single stream, while allowing the application to control message
-expiration.
+expiration.  In this proposal, both the sender and the receiver are able to
+control expiration of messages in a stream.
 
-The key to partially reliabile message streams is notifying the receiver about
-data that will not be retransmitted and ensuring that the receiver can identify
-the beginning of each new message.
+A feature of the proposed protocol is that data is seen by the receiver
+application at the same stream offsets used by the sender application.
 
-It is important to note that the proposed protocol does not guarantee that data
-is read by the receiver application at the stream offsets written to by the
-sender application.
+The key to partially reliabile streams is notifying the peer about data that
+will not or should not be retransmitted and managing flow control for the
+connection.
+
+To facilitate flow control, this proposal introduces a new QUIC per-stream
+value: Exempt Stream Bytes ({{exempt-stream-bytes}}).
 
 
-Minimum retransmittable offset and smallest receive offset    {#offsets}
-----------------------------------------------------------
+Exempt Stream Bytes      {#exempt-stream-bytes}
+-------------------
+
+Exempt Stream Bytes is the number of bytes sent on the stream that do
+not count toward connection flow control limit.  Initially, Exempt
+Stream Bytes is 0 for all streams.
+
+
+Minimum retransmittable offset and current receive offset    {#offsets}
+---------------------------------------------------------
 
 For fully reliable streams, the smallest unacknowledged data offset is treated
-by the sender to be the minimum retransmittable offset.  Likewise, the smallest
+by the sender to be the minimum retransmittable offset.  Likewise, the current
 receive offset for a stream is the smallest data offset that has not been
-received by the receiver.  Due to loss and reordering, the smallest receive
-offset may be smaller than the largest received offset.
+received by the receiver.  Note that due to loss and reordering, the current
+receive offset may be smaller than the largest received offset.
 
 Partially reliable streams allow the sender to advance its minimum
-retransmittable offset and notify the receiver to advance its smallest receive
-offset.
+retransmittable offset and notify the receiver to advance its current receive
+offset.  The receiver can also advance its current receive offset and notify the
+sender to advance its minimum retransmittable offset.
+
+
+New Frames
+==========
+
+This introduces new MIN_STREAM_DATA ({{frame-min-stream-data}}) and
+EXPIRED_STREAM_DATA ({{frame-expired-stream-data}}) frames.
+
+
+## MIN_STREAM_DATA Frame     {#frame-min-stream-data}
+
+The MIN_STREAM_DATA frame (type=0x??) is used by a receiver to inform a sender
+of the maximum amount of data that can be sent on a stream (like MAX_STREAM_DATA
+frame) and to request an update to the minimum retransmittable offset
+({{offsets}}) and Exempt Stream Bytes value ({{exempt-stream-bytes}}) for this
+stream.
+
+The MIN_STREAM_DATA frame includes MAX_STREAM_DATA frame functionality solely
+for encoding efficiency, since any increase in the minimum offset of the stream
+is likey to come with a corresponding increase in stream flow control window.
+
+The MIN_STREAM_DATA frame includes Minimum Stream Offset and Exempt Stream Bytes
+fields in the same frame, since both affect connection flow control. It would
+significantly complicate connection flow control accounting, if both fields were
+not updated at the same time.
+
+
+The frame is as follows:
+
+~~~
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Stream ID (i)                        ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Maximum Stream Data (i)                  ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                   Minimum Stream Offset (i)                 ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Exempt Stream Bytes (i)                  ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+~~~
+
+The fields in the MIN_STREAM_DATA frame are as follows:
+
+Stream ID:
+
+: The stream ID of the stream that is affected encoded as a variable-length
+  integer.
+
+Maximum Stream Data:
+
+: A variable-length integer indicating the maximum amount of data that can be
+  sent on the identified stream, in units of octets.
+
+Minimum Stream Offset:
+
+: A variable-length integer indicating the minimum offset of the stream data
+  that the receiver is expecting to receive on the identified stream, in units
+  of octets.
+
+Exempt Stream Bytes:
+
+: A variable-length integer indicating the amount of data on the identified
+  stream exempt from connection flow control, in units of octets.
+
+The semantics of Maximum Stream Data field is identical to that of Maximum
+Stream Data field in MAX_STREAM_DATA frame.
+
+Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.
+
+Upon receipt of a MIN_STREAM_DATA frame, the sender advances the maximum amount
+of data that can be sent on the stream, the minimum retransmittable offset, and
+the Exempt Stream Bytes value to the corresponding values of Maximum Stream
+Data, Minimum Stream Offset, and Exempt Stream Bytes fields.
+
+If the minimum retransmittable offset becomes larger than the current send
+offset for a stream, the current send offset is advanced to the minimum
+retransmittable offset.
+
+The receiver MUST NOT reduce the maximum stream data value, minimum
+retransmittable offset, and Exempt Stream Bytes value for the stream, but loss
+and reordering can cause MIN_STREAM_DATA frames to be received out of order.  If
+Maximum Stream Data field does not advance the maximum amount of data that can
+be sent on the stream, or Minimum Stream Offset field does not advance the
+minimum retransmittable offset, or Exempt Stream Bytes field does not advance
+Exempt Stream Bytes value, the corresponding stream parameter is not updated.
+
+A MIN_STREAM_DATA referencing a closed or a "half-closed (local)" stream SHOULD
+be ignored.
+
+An endpoint that receives a MIN_STREAM_DATA frame for a receive-only stream MUST
+terminate the connection with error PROTOCOL_VIOLATION.
+
+An endpoint that receives a MIN_STREAM_DATA frame for a send-only stream it has
+not opened MUST terminate the connection with error PROTOCOL_VIOLATION.
+
+Note that an endpoint may legally receive a MIN_STREAM_DATA frame on a
+bidirectional stream it has not opened.
+
+An endpoint MUST terminate a connection with a MIN_STREAM_DATA_ERROR error, if
+one of the three fields is advancing its stream parameter, while another field
+is trying to retard its stream parameter.  An endpoint MUST terminate a
+connection with a MIN_STREAM_DATA_ERROR error, if Maximum Stream Data field is
+smaller than Minimum Stream Offset field or Minimum Stream Offset field is
+smaller than Exempt Stream Bytes field.
 
 
 EXPIRED_STREAM_DATA Frame     {#frame-expired-stream-data}
-=========================
+-------------------------
 
 The EXPIRED_STREAM_DATA frame (type=0x??) is used by a sender to inform a
 receiver of the minimum retransmittable offset ({{offsets}}) for a stream.
 
-An endpoint that receives an EXPIRED_STREAM_DATA frame for a send-only stream
-MUST terminate the connection with error PROTOCOL_VIOLATION.
+Sending EXPIRED_STREAM_DATA frame does not change the stream's current send
+offset.
 
 The frame is as follows:
 
@@ -150,7 +269,7 @@ The fields in the EXPIRED_STREAM_DATA frame are as follows:
 
 Stream ID:
 
-: The stream ID of the stream that is affected, encoded as a variable-length
+: The stream ID of the stream that is affected encoded as a variable-length
   integer.
 
 Minimum Stream Offset:
@@ -161,176 +280,144 @@ Minimum Stream Offset:
 
 Since Stream 0 MUST be reliable, Stream ID MUST NOT be 0.
 
-Upon receipt of an EXPIRED_STREAM_DATA frame, the receiver advances the smallest
-receive offset for the stream ({{offsets}}) to be the Minimum Stream Offset
-value.
+Upon receipt of an EXPIRED_STREAM_DATA frame, the receiver advances the current
+receive offset for the stream to be Minimum Stream Offset value.
 
 The sender MUST NOT reduce the minimum retransmittable offset for a stream, but
 loss and reordering can cause EXPIRED_STREAM_DATA frames to be received out of
-order.  EXPIRED_STREAM_DATA frames that do not advance the smallest receive
+order.  EXPIRED_STREAM_DATA frames that do not advance the current receive
 offset for the stream MUST be ignored.
 
-If the largest received offset is smaller than Minimum Stream Offset for the
-stream, it is advanced to Minimum Stream Offset minus 1.  It is possible for the
-smallest receive offset to become larger than the largest received offset a the
-stream.
+If the current receive offset becomes larger than the largest received offset
+for the stream, the receiver MUST advance the stream's Exempt Stream Bytes value
+by the difference between the current and the largest received offsets.  The
+largest received offset is then set to match the current receive offset, and the
+receiver SHOULD send a MIN_STREAM_DATA frame ({{frame-min-stream-data}}).
+
+Note that receipt of an EXPIRED_STREAM_DATA frame may cause the current receive
+offset (and hence the largest received offset) to exceed a previously advertised
+maximum stream data value for the stream.
+
+An endpoint that receives an EXPIRED_STREAM_DATA frame for a send-only stream
+MUST terminate the connection with error PROTOCOL_VIOLATION.
+
+
+Flow Control Update      {#flow-control}
+===================
+
+Flow control changes are designed to allow a sender that desires to expire a
+large number of bytes that have never been transmitted to do so efficiently and
+without closing down the connection flow control window (thereby blocking other
+streams).  That must be done in a way that does not open up the connection flow
+control window, allowing a different stream to use connection credits not
+designed for it.
+
+
+Connection Flow Control    {#flow-control-connection}
+-----------------------
+
+The connection flow control calculation is redefined to be the sum of the
+current stream offsets (current send offset for the sender and the largest
+received offset for the receiver) minus the sum of Exempt Stream Bytes values
+({{exempt-stream-bytes}}) for all streams, including closed streams but
+excluding stream 0.
+
+
+Stream Final Offset
+-------------------
+
+If a STREAM-with-FIN or an RST_STREAM frame is received with the final stream
+offset smaller than largest received offset for a stream, it is only an error,
+if the final receive offset for the stream is smaller than largest offset
+learned from a STREAM or RST_STREAM frames.  If the final stream offset is
+smaller than the largest received offset, the final stream offset is advanced to
+be the largest received offset.
+
+
+QUIC Interface and Behavior      {#interface}
+=============================
+
+QUIC library interface needs to expose additional APIs to allow applications to
+take advantage of partially reliable streams.
 
 
 Sender Interface and Behavior    {#sender-interface}
-=============================
+-----------------------------
 
-A QUIC library interface needs provide a way for a sender to expire data
-previously written to the transport by updating the minimum retransmittable
-offset ({{offsets}}) for a stream.  A typical sender would call this API
-function whenever data previously enqueued for transmission expires, per
-application semantics.  The sender would keep track of the message boundaries
-and request expiration of data on a message boundary.
-
-
-Communicating Message Boundary
-------------------------------
-
-To allow a sender application to expire stream data written to the transport but
-never sent to the receiver, the sender transport needs to create a gap between
-data previously sent on the stream and data to be sent after the expiration
-point.  The gap ensures that the receiver does not deliver subsequent octets to
-the application until the receipt of the EXPIRED_STREAM_DATA frame, in case
-packets containing the EXPIRED_STREAM_DATA frame and the subsequent STREAM frame
-are reordered.
-
-To avoid complicated connection flow control accounting (see [version 02 of this
-draft](https://tools.ietf.org/html/draft-lubashev-quic-partial-reliability-02)),
-a single octet gap is used for communicating the message boundary.  Sender's
-EXPIRED_STREAM_DATA frame extends the minimum stream offset past that gap.  Upon
-receipt of the EXPIRED_STREAM_DATA frame, the receiver is able to notify the
-application of a gap, which allows the application to identify the beginning of
-a new message.
-
-
-Translating Application Offsets to QUIC Offsets     {#translating-offsets}
------------------------------------------------
-
-Since the QUIC library and the application need to communicate data offsets (for
-example, for the purpose of updating the minimum retransmittable stream offset),
-the QUIC library needs to translate application offsets to QUIC offsets.
-Depending on the richness of the APIs exposed to the application, keeping a
-single difference between the current application and QUIC offsets is likely to
-be sufficient.
-
-
-Sender Behavior
----------------
-
-This section discusses sender behavior in terms of QUIC offsets, and the
-translation from application offsets (see {{translating-offsets}}) is implicit.
+It is recommended that a QUIC library provides a way for a sender to update the
+minimum retransmittable offset ({{offsets}}) for a stream.  A typical sender
+would call this API function whenever data previously enqueued for transmission
+expires, per application semantics.  The sender would keep track of the message
+boundaries and request expiration of data on a message boundary.
 
 When an application instructs its QUIC transport to advance the minimum
-retransmittable offset for a stream, and there is any unacknowledged data
+retransmittable offset for a stream, and there there is any unacknowledged data
 (including unsent data) at an offset smaller than the new minimum
-retransmittable offset, the sender SHOULD transmit an EXPIRED_STREAM_DATA frame
-({{frame-expired-stream-data}}), except as provided for in
-{{coalesced-updates}}.
+retransmittable offset, the sender SHOULD transmit a EXPIRED_STREAM_DATA frame
+({{frame-expired-stream-data}}).
 
-* When the new minimum retransmittable offset is less than or equal to the
-  current send offset, the Minimum Stream Offset field in the
-  EXPIRED_STREAM_DATA frame is set to the new minimum retransmittable offset.
-
-* When the new minimum retransmittable offset is larger the current send offset,
-  the Minimum Stream Offset field in the EXPIRED_STREAM_DATA frame is set to the
-  current send offset plus 1, and stream data starting at the new minimum
-  retransmittable offset is henceforth sent starting at the current send offset
-  plus 1 (which becomes the new minimum retransmittable offset).  Hence, it may
-  be possible for a minimum retransmittable offset to become larger than the
-  current send offset for a stream.
-
-
-### Coalescing Minimum Retransmittable Offset Updates {#coalesced-updates}
-
-When an application instructs its QUIC transport to advance the minimum
-retransmittable offset for a stream, but the current send offset is not larger
-than the minimum retransmittable offset specified in the _previous_ call to this
-API function, the current stream offset is not advanced and an
-EXPIRED_STREAM_DATA frame is not sent.  Stream data starting at the requested
-minimum retransmittable offset is henceforth sent starting at the previous
-minimum retransmittable offset (which remains the minimum retransmittable offset
-for the stream).
-
-Note that the coalescing rule does not apply (the EXPIRED_STREAM_DATA frame _is_
-sent) if the very first message has expired before any of its octets have been
-transmitted.  This allows the receiver to always ascertain the location of any
-gaps in messages it is receiving.
-
-
-### Example
-
-For example, an application wrote four 10-octet messages (A, B, C, D) to the
-transport, and the current send offset (the next offset to be sent) is 12.  In
-this example, the upper-case indicates bytes to be sent, while the lower-case
-indicates bytes already sent.
-
-~~~
- 0                   1   s               2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|a a a a a a a a a a b b B B B B B B B B C C C C C C C C C C D D ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-~~~
-
-When the application desires to expire messages A and B, it requests the minimum
-retransmittable offset to be 20.  The transport then sends an
-EXPIRED_STREAM_DATA frame with Minimum Stream Offset field set to 13, and the
-subsequent STREAM frame would send message C starting at stream offset 13.
-
-~~~
- 0                   1   s m             2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|a a a a a a a a a a b b   C C C C C C C C C C D D D D D D D D D D
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-~~~
-
-However, if the application requestes to expire octets corresponding to message
-C before any subsequent STREAM frames could be sent, no new EXPIRED_STREAM_DATA
-frame is sent, and the subsequent STREAM frame would send message D starting at
-stream offset 13.
-
-~~~
- 0                   1   s m             2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|a a a a a a a a a a b b   D D D D D D D D D D
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-~~~
+An application may decide to conditionally expire messages based on the delivery
+status of prior messages.  For example, an application sending large messages
+may wish to ensure that its messages are delivered at least at a given minimum
+rate before expiring a partially-delivered message just because there is a newer
+message to deliver.  That is, if the rate of data the application wishes to
+write exceeds the network's throughput, the application may want to ensure that
+at least some messages are delivered in their entirety.  To support this use
+case, it is recommended that a QUIC library API provides a way for the sender
+application to monitor the change in minimum retransmittable offset due to
+receipt of ACKs.
 
 
 Receiver Interface and Behavior   {#receiver-interface}
-===============================
+-------------------------------
 
 Upon receipt of an EXPIRED_STREAM_DATA frame ({{frame-expired-stream-data}}),
-the receiver SHOULD assume that none of the data before the new smallest receive
-offset ({{offsets}}) will be retransmitted.
+the receiver SHOULD assume that none of the data before the new current receive
+offset ({{offsets}}) will be retransmitted.  A receiver SHOULD discard any
+stream data received for an offset smaller than the new current receive offset.
+Discarding such data ensures that when the application observes a gap in the
+data stream, what follows the gap is a beginning of a new message.
 
-The receiver SHOULD discard any stream data octets subsequently received for an
-offset smaller than the new smallest receive offset, possibly advancing the
-largest received offset for the stream.  Discarding such data ensures that when
-the application observes a gap in the data stream, what follows the gap is a
-beginning of a new message.
+It is recommended that a QUIC library API provides a way for a receiver
+application to obtain the length of a gap corresponding to the expired data in
+addition to data octets that follow the gap.
 
-It is recommended that a QUIC library API provides a way for the receiver
-application to learn of the presence of a gap in the data stream, indicating
-that the data that follows the gap is a beginning of a new message.
+It is recommended that a QUIC library API provide a way for a receiver
+application to skip data octets past the current point in the stream.  Such a
+request from the application should be treated by QUIC as a receipt of an
+EXPIRED_STREAM_DATA frame with the Minimum Stream Offset field set of the offset
+to which the application wished to skip.  If the current receive offset is
+advanced as a result of this application request, QUIC library SHOULD transmit a
+MIN_STREAM_DATA frame.
 
 
-Retransmission of EXPIRED_STREAM_DATA      {#retransmission}
-=====================================
+Retransmission      {#retransmission}
+==============
 
-The most recent EXPIRED_STREAM_DATA frame ({{frame-expired-stream-data}}) for a
-stream MUST be retransmitted if it is declared lost, until the sender is certain
-that the receiver is not expecting retransmission of any expired data.  I.e. the
-frame MUST be retransmitted until the stream enters "half-closed (local)" state,
-or all data between the largest Minimum Stream Offset field in an acknowledged
-EXPIRED_STREAM_DATA frame and the current minimum retransmittable offset
-({{offsets}}) has been acknowledged.
+Both MIN_STREAM_DATA ({{frame-min-stream-data}}) and EXPIRED_STREAM_DATA
+({{frame-expired-stream-data}}) frames MUST be retransmitted if declared lost.
+
+Retransmission of MIN_STREAM_DATA    {#retransmission-min-stream-data}
+---------------------------------
+
+The most recent MIN_STREAM_DATA frame MUST be retransmitted until the receiver
+is certain that the sender is not going to transmit any skipped data.  I.e. the
+frame MUST be retransmitted until the stream enters "half-closed (remote)"
+state, or all data between the largest Minimum Stream Offset field in an
+acknowledged MIN_STREAM_DATA or received EXPIRED_STREAM_DATA frames and the
+current receive offset ({{offsets}}) has been received.
+
+
+Retransmission of EXPIRED_STREAM_DATA    {#retransmission-expired-stream-data}
+---------------------------------
+
+The most recent EXPIRED_STREAM_DATA frame for a stream MUST be retransmitted
+until the sender is certain that the receiver is not expecting retransmission of
+any expired data.  I.e. the frame MUST be retransmitted until the stream enters
+"half-closed (local)" state, or all data between the largest Minimum Stream
+Offset field in an acknowledged EXPIRED_STREAM_DATA or received MIN_STREAM_DATA
+frames and the current minimum retransmittable offset ({{offsets}}) has been
+acknowledged.
 
 
 IANA Considerations   {#iana}
@@ -359,48 +446,31 @@ Since version 01
 ----------------
 
 - Added an ability by the receiver as well as the sender to control partial
-  reliability of QUIC streams.
+  reliability of QUIC streams.  ({{receiver-interface}})
 
 - Added Exempt Stream Bytes value and updated connection flow control
-  calculation to use Exempt Stream Bytes value.
+  calculation to use Exempt Stream Bytes value.  ({{exempt-stream-bytes}})
 
 - Replaced the Min Stream Offset value with the existing values: "min
-  retransmittable offset" (for sender) and "smallest receive offset" (for
+  retransmittable offset" (for sender) and "current receive offset" (for
   receiver).  ({{offsets}})
 
 - Changed MIN_STREAM_DATA frame to be a receiver-transmitted frame.
+  ({{frame-min-stream-data}})
 
-- Added sender-transmitted EXPIRED_STREAM_DATA frame.
+- Addded sender-transmitted EXPIRED_STREAM_DATA frame.
   ({{frame-expired-stream-data}})
-
-Since version 02
-----------------
-
-- Significantly simplifed the proposal by treating the stream as a message
-  stream, allowing for data offsets not to be preserved between the sender and
-  the receiver.
-
-- Reverted to sender-only transport-level control of message expiration.
-
-- Removed the need for Exempt Stream Bytes and changes to connection flow
-  control accounting.
-
-- Removed MIN_STREAM_DATA frame.
-
-Since version 03
-----------------
-
-- Fixed receiver flow control accounting.
 
 
 Acknowledgments
 ===============
 
-Many thanks to Mike Bishop, Ian Swett, and Subodh Iyengar for their reviews,
-feedback, and ideas.  Thus draft would not happen without their input.  Kudos to
-the QUIC working group for a mountain of feedback on this draft and for
-diligently plowing through hard problems, making thousands of big and small
-decisions, to make the Internet better for everyone.
+Many thanks to Mike Bishop and Ian Swett for their review and feedback on flow
+control issues.  Thus draft would not happen without Subodh Iyengar's ideas for
+receiver-controlled MIN_STREAM_DATA.  Kudos to the QUIC working group for a
+mountain of feedback on this draft and for diligently plowing through hard
+problems, making thousands of big and small decisions, to make the Internet
+better for everyone.
 
 
 --- back
