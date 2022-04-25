@@ -59,16 +59,16 @@ interpreted as described in {{!RFC2119}}.
 Introduction     {#introduction}
 ============
 
-Some applications, especially applications with near real-time requirements,
-need transport that supports partially reliable streams -- streams that deliver
-bytes in order but allow for applicaiton-controlled gaps.  These applications
-communicate using application-specific messages that are serialized over QUIC
-streams.  Applications desire partially reliable streams when their messages
-expire and lose their usefulness due to later events (time passing, newer
-messages, etc).
+Some applications, especially applications with near-real-time requirements,
+need a transport that supports partially reliable streams -- streams that
+deliver bytes in order but allow for application-controlled gaps.  These
+applications communicate using application-specific messages that are serialized
+over QUIC streams.  Applications desire partially reliable streams when their
+messages expire and lose their usefulness due to later events (time passing,
+newer messages, etc).
 
 Examples of applications that can benefit from partially reliable streams are
-real time video (all prior data is to be expired when a new key frame is
+real-time video (all prior data is to be expired when a new key frame is
 available) and data replication (expire previous updates, when a new update
 overwrites the data).
 
@@ -81,8 +81,8 @@ Stream-per-Message Alternative
 
 It is possible to avoid the need for partially reliable streams by encoding one
 message per QUIC stream.  When a message expires, the sender can reset the
-stream, causing RST_STREAM frame to be transmitted, unless all data in the
-stream has already been fully acknowledged.  Likewise, the receiver can send
+stream, causing a RST_STREAM frame to be transmitted, unless all data in the
+stream has already been fully acknowledged.  Likewise, the receiver can send a
 STOP_SENDING frame to indicate its disinterest in the message.  The problem with
 this approach is that messages transmitted by the application typically belong
 to a message stream, and applications may need to support multiple concurrent
